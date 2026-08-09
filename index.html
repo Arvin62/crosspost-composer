@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>图文排版台 · 一次插图，多平台粘贴</title>
+</head>
+<body>
+  <header>
+    <div class="brand">图文排版台<small>一次插图 · 多平台粘贴</small></div>
+    <button id="btnDocuments" class="document-switcher" title="打开文档中心">
+      <span>文档</span><strong id="currentDocName">未命名文章</strong>
+    </button>
+    <div class="spacer"></div>
+    <div class="meta"><span id="stats"></span><br /><span id="saveHint"></span></div>
+    <button id="btnNavigator" title="打开大纲与查找替换">大纲 / 查找</button>
+    <button id="btnImport">导入文章</button>
+    <button id="btnImage">插入图片</button>
+    <button id="btnCopy" class="primary">平台复制</button>
+    <div class="menu-wrap">
+      <button id="btnMore" title="更多操作">···</button>
+      <div id="moreMenu" hidden>
+        <button data-act="source">复制 HTML 源码</button>
+        <button data-act="export">导出为 .html 文件</button>
+        <button data-act="compress">批量压缩图片</button>
+        <button data-act="settings">设置</button>
+        <button data-act="help">使用帮助与本机数据</button>
+        <hr />
+        <button data-act="clear" class="danger">清空内容</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="page">
+      <div id="editor" contenteditable="true" spellcheck="false"></div>
+    </div>
+  </main>
+
+  <aside id="navigatorPanel" hidden aria-label="文档导航与查找替换">
+    <div class="navigator-head">
+      <h3>文档导航</h3>
+      <button id="navigatorClose" title="关闭侧栏" aria-label="关闭侧栏">×</button>
+    </div>
+    <section class="find-panel">
+      <label for="findInput">查找与替换</label>
+      <div class="find-row">
+        <input id="findInput" type="search" placeholder="查找内容" />
+        <span id="findCount"></span>
+      </div>
+      <div class="find-nav-actions">
+        <button id="findPrev" title="上一个匹配">↑ 上一个</button>
+        <button id="findNext" title="下一个匹配">↓ 下一个</button>
+      </div>
+      <p class="find-hint">输入后自动标出结果；Enter 下一处，Shift+Enter 上一处。</p>
+      <button id="replaceToggle" class="replace-toggle" type="button">展开替换…</button>
+      <div id="replacePanel" class="replace-panel" hidden>
+        <label for="replaceInput">替换为</label>
+        <input id="replaceInput" type="text" placeholder="输入新内容" />
+        <div class="replace-actions">
+          <button id="replaceOne" disabled>替换当前一处</button>
+          <button id="replaceAll" class="danger" disabled>全部替换</button>
+        </div>
+        <p class="replace-hint">替换内容留空代表删除原文，执行前会再次确认。</p>
+      </div>
+    </section>
+    <section class="outline-panel">
+      <h4>文章大纲</h4>
+      <div id="outlineList"></div>
+    </section>
+  </aside>
+
+  <div id="imgBar" hidden>
+    <button data-w="">原始大小</button>
+    <button data-w="70%">70%</button>
+    <button data-w="50%">50%</button>
+    <span class="sep"></span>
+    <button data-a="center">居中</button>
+    <button data-a="left">居左</button>
+    <span class="sep"></span>
+    <button id="imgReplace">替换</button>
+    <button id="imgCrop">裁剪</button>
+    <button id="imgRotate">旋转</button>
+    <button id="imgAlt" title="不显示在正文中，用于无障碍阅读和图片加载失败提示">替代文字</button>
+    <button id="imgCaption">图注</button>
+    <span class="sep"></span>
+    <button id="imgUp">上移</button>
+    <button id="imgDown">下移</button>
+    <span class="sep"></span>
+    <button id="imgDel" class="danger">删除</button>
+  </div>
+
+  <dialog id="documentsDlg" class="wide-dialog" aria-labelledby="documentsTitle">
+    <div class="dialog-head">
+      <div>
+        <h3 id="documentsTitle">文档中心</h3>
+        <p class="hint">管理多篇文章、搜索文档并恢复历史版本。</p>
+      </div>
+      <button id="documentsClose" class="icon-button" aria-label="关闭">×</button>
+    </div>
+    <div class="documents-layout">
+      <section class="documents-column">
+        <div class="document-tools">
+          <input id="documentSearch" type="search" placeholder="搜索文档…" />
+          <button id="documentNew" class="primary">新建</button>
+        </div>
+        <div id="documentList"></div>
+      </section>
+      <section class="document-detail">
+        <label for="documentTitle">当前文档标题</label>
+        <input id="documentTitle" type="text" maxlength="100" />
+        <div class="document-actions">
+          <button id="documentSnapshot">保存版本</button>
+          <button id="documentDuplicate">创建副本</button>
+          <button id="documentDelete" class="danger">删除文档</button>
+        </div>
+        <div class="history-head">
+          <h4>历史版本</h4>
+          <span>每 5 分钟最多自动保存一次版本</span>
+        </div>
+        <div id="historyList"></div>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="platformDlg" aria-labelledby="platformTitle">
+    <h3 id="platformTitle">平台复制与发布前检查</h3>
+    <p class="hint">选择目标平台，工具会转换内容并提示可能丢失的部分。</p>
+    <div id="platformCards" class="platform-cards"></div>
+    <div id="platformStats" class="platform-stats"></div>
+    <div id="platformReport" class="platform-report"></div>
+    <div class="dlg-actions">
+      <button id="platformCancel">取消</button>
+      <button id="platformCopy" class="primary">复制</button>
+    </div>
+  </dialog>
+
+  <dialog id="cropDlg" class="crop-dialog" aria-labelledby="cropTitle">
+    <h3 id="cropTitle">裁剪图片</h3>
+    <p class="hint">在图片上拖动鼠标，框选需要保留的区域。</p>
+    <div class="crop-stage"><canvas id="cropCanvas"></canvas></div>
+    <div class="dlg-actions">
+      <button id="cropReset">重置选区</button>
+      <span class="spacer"></span>
+      <button id="cropCancel">取消</button>
+      <button id="cropApply" class="primary">应用裁剪</button>
+    </div>
+  </dialog>
+
+  <dialog id="imageMetaDlg" aria-labelledby="imageMetaTitle">
+    <h3 id="imageMetaTitle">图片信息</h3>
+    <p class="hint">替代文字不会显示在正文中，主要用于无障碍阅读和图片加载失败提示；图注才会显示在图片下方。</p>
+    <div class="image-meta-field">
+      <label for="imageAltInput">图片替代文字</label>
+      <input id="imageAltInput" type="text" maxlength="300" placeholder="例如：车辆底盘结构示意图" />
+    </div>
+    <div class="image-meta-field">
+      <label for="imageCaptionInput">图片图注</label>
+      <textarea id="imageCaptionInput" rows="3" maxlength="500" placeholder="留空则不显示图注"></textarea>
+    </div>
+    <div class="dlg-actions">
+      <button id="imageMetaCancel">取消</button>
+      <button id="imageMetaSave" class="primary">保存图片信息</button>
+    </div>
+  </dialog>
+
+  <dialog id="importDlg" aria-labelledby="importTitle">
+    <h3 id="importTitle">导入文章</h3>
+    <button id="dlgFile" class="file-btn">选择本地文件（HTML / Markdown）…</button>
+    <div class="dlg-format">
+      <span>粘贴内容格式：</span>
+      <label><input type="radio" name="fmt" value="html" checked /> HTML</label>
+      <label><input type="radio" name="fmt" value="markdown" /> Markdown</label>
+    </div>
+    <textarea id="importSrc" placeholder="把 HTML 源码或 Markdown 粘贴到这里…"></textarea>
+    <div class="dlg-actions">
+      <button id="dlgCancel">取消</button>
+      <button id="dlgLoad" class="primary">载入</button>
+    </div>
+  </dialog>
+
+  <dialog id="settingsDlg" aria-labelledby="settingsTitle">
+    <h3 id="settingsTitle">设置</h3>
+    <div class="set-row">
+      <label for="setMaxWidth">图片最大宽度</label>
+      <div><input type="number" id="setMaxWidth" min="200" max="4096" step="10" /> px</div>
+    </div>
+    <p class="set-hint">插入的图片超过此宽度会等比缩小；越小体积越小。默认 1280。</p>
+    <div class="set-row">
+      <label for="setQuality">图片压缩质量</label>
+      <div><input type="number" id="setQuality" min="40" max="100" step="5" /> %</div>
+    </div>
+    <p class="set-hint">JPEG 压缩质量，越高越清晰、体积越大。默认 85。（排版主题在顶部工具栏右侧切换）</p>
+    <div class="dlg-actions">
+      <button id="setCancel">取消</button>
+      <button id="setSave" class="primary">保存</button>
+    </div>
+  </dialog>
+
+  <dialog id="helpDataDlg" class="help-data-dialog" aria-labelledby="helpDataTitle">
+    <div class="dialog-head">
+      <div>
+        <h3 id="helpDataTitle">使用帮助与本机数据</h3>
+        <p class="hint">快速上手、备份文档，了解内容保存方式。</p>
+      </div>
+      <button id="helpDataClose" class="icon-button" aria-label="关闭">×</button>
+    </div>
+
+    <section class="privacy-card">
+      <strong>内容只保存在当前浏览器</strong>
+      <p>工具没有账号和上传服务器。换设备、换浏览器或清理网站数据时，文档不会自动跟过去，请先导出完整备份。</p>
+    </section>
+
+    <section class="help-section">
+      <h4>三步完成一篇文章</h4>
+      <div class="quick-start-grid">
+        <article><span>1</span><strong>导入或新建</strong><p>在文档中心管理多篇文章，也可导入 HTML / Markdown。</p></article>
+        <article><span>2</span><strong>编辑图文</strong><p>插入图片后可裁剪、旋转、添加图注并调整顺序。</p></article>
+        <article><span>3</span><strong>预检并复制</strong><p>选择目标平台，处理提示后直接粘贴到发布后台。</p></article>
+      </div>
+    </section>
+
+    <section class="help-section data-management">
+      <div>
+        <h4>完整数据备份</h4>
+        <p id="localDataSummary">正在读取本机数据…</p>
+      </div>
+      <div class="data-actions">
+        <button id="backupExport" class="primary">导出全部备份</button>
+        <button id="backupImport">恢复备份</button>
+        <button id="localDataClear" class="danger">清除本机数据</button>
+      </div>
+      <p class="data-hint">备份文件包含全部文档、图片、历史版本和当前设置，请妥善保管。恢复或清除前会自动下载一份安全备份。</p>
+    </section>
+
+    <footer class="app-version">
+      <span id="appVersion"></span>
+      <span>纯本地处理 · 零后端 · 零上传</span>
+      <a href="https://github.com/Arvin62/crosspost-composer/blob/main/LICENSE" target="_blank" rel="noreferrer">个人非商业免费 · 商业使用需授权</a>
+    </footer>
+  </dialog>
+
+  <input type="file" id="fileInput" accept="image/*" multiple hidden />
+  <input type="file" id="replaceImageInput" accept="image/*" hidden />
+  <input type="file" id="htmlInput" accept=".html,.htm,.md,.markdown,text/html,text/markdown" hidden />
+  <input type="file" id="backupInput" accept=".json,application/json" hidden />
+  <div id="toast"></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
