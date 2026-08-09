@@ -2,6 +2,10 @@ import { toast } from './toast';
 
 export type ImportFormat = 'html' | 'markdown';
 
+export interface ImportOptions {
+  keepExternalImages: boolean;
+}
+
 /**
  * 导入弹窗：支持「选择本地文件（HTML / Markdown）」与「粘贴源码」两种方式。
  * 粘贴时按单选项决定格式；选文件时按扩展名自动判断。
@@ -9,11 +13,16 @@ export type ImportFormat = 'html' | 'markdown';
  * 回调返回 true 表示已导入，弹窗随之关闭。
  */
 export function initImportDialog(
-  onImport: (src: string, format: ImportFormat) => boolean | Promise<boolean>,
+  onImport: (
+    src: string,
+    format: ImportFormat,
+    options: ImportOptions,
+  ) => boolean | Promise<boolean>,
 ): { open(): void } {
   const dlg = document.querySelector<HTMLDialogElement>('#importDlg')!;
   const srcEl = document.querySelector<HTMLTextAreaElement>('#importSrc')!;
   const htmlInput = document.querySelector<HTMLInputElement>('#htmlInput')!;
+  const keepExternalImages = document.querySelector<HTMLInputElement>('#keepExternalImages')!;
 
   const pastedFormat = (): ImportFormat =>
     dlg.querySelector<HTMLInputElement>('input[name="fmt"]:checked')?.value === 'markdown'
@@ -28,7 +37,12 @@ export function initImportDialog(
       toast('先粘贴内容，或点上面的按钮选文件');
       return;
     }
-    if ((await onImport(v, pastedFormat())) && dlg.open) dlg.close();
+    if (
+      (await onImport(v, pastedFormat(), { keepExternalImages: keepExternalImages.checked })) &&
+      dlg.open
+    ) {
+      dlg.close();
+    }
   });
 
   document.querySelector<HTMLButtonElement>('#dlgFile')!.addEventListener('click', () => htmlInput.click());
@@ -38,12 +52,20 @@ export function initImportDialog(
     htmlInput.value = '';
     if (!f) return;
     const format: ImportFormat = /\.(md|markdown)$/i.test(f.name) ? 'markdown' : 'html';
-    if ((await onImport(await f.text(), format)) && dlg.open) dlg.close();
+    if (
+      (await onImport(await f.text(), format, {
+        keepExternalImages: keepExternalImages.checked,
+      })) &&
+      dlg.open
+    ) {
+      dlg.close();
+    }
   });
 
   return {
     open() {
       srcEl.value = '';
+      keepExternalImages.checked = false;
       dlg.showModal();
       srcEl.focus();
     },

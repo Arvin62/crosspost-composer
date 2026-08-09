@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests" />
   <title>图文排版台 · 一次插图，多平台粘贴</title>
 </head>
 <body>
@@ -166,6 +168,7 @@
 
   <dialog id="importDlg" aria-labelledby="importTitle">
     <h3 id="importTitle">导入文章</h3>
+    <p class="hint">默认不会连接原文章的图片服务器。</p>
     <button id="dlgFile" class="file-btn">选择本地文件（HTML / Markdown）…</button>
     <div class="dlg-format">
       <span>粘贴内容格式：</span>
@@ -173,6 +176,10 @@
       <label><input type="radio" name="fmt" value="markdown" /> Markdown</label>
     </div>
     <textarea id="importSrc" placeholder="把 HTML 源码或 Markdown 粘贴到这里…"></textarea>
+    <label class="external-image-option">
+      <input id="keepExternalImages" type="checkbox" />
+      <span><strong>保留网络图片（不推荐）</strong><small>开启后浏览器会访问第三方图片地址，对方可能看到你的 IP；默认移除，可在导入后插入本地图片。</small></span>
+    </label>
     <div class="dlg-actions">
       <button id="dlgCancel">取消</button>
       <button id="dlgLoad" class="primary">载入</button>
@@ -209,6 +216,7 @@
     <section class="privacy-card">
       <strong>内容只保存在当前浏览器</strong>
       <p>工具没有账号和上传服务器。换设备、换浏览器或清理网站数据时，文档不会自动跟过去，请先导出完整备份。</p>
+      <p>导入文章时默认移除网络图片和远程资源；只有手动选择保留网络图片时，浏览器才会访问第三方图片地址。</p>
     </section>
 
     <section class="help-section">

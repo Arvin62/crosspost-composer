@@ -571,6 +571,35 @@ dialog textarea:focus {
   gap: 5px;
   cursor: pointer;
 }
+.external-image-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #ead9b8;
+  border-radius: 8px;
+  background: #fffbf2;
+  color: #6f5420;
+  cursor: pointer;
+}
+.external-image-option input {
+  flex: none;
+  margin-top: 3px;
+}
+.external-image-option span,
+.external-image-option small {
+  display: block;
+}
+.external-image-option strong {
+  font-size: 12px;
+}
+.external-image-option small {
+  margin-top: 3px;
+  color: #8a7243;
+  font-size: 11px;
+  line-height: 1.55;
+}
 
 /* ---------- 设置弹窗 ---------- */
 .set-row {
@@ -1125,6 +1154,14 @@ dialog.wide-dialog {
     border-color: #29496b;
     background: #1d2b3a;
     color: #b7d8fa;
+  }
+  .external-image-option {
+    border-color: #594c31;
+    background: #302a1f;
+    color: #f0d9a5;
+  }
+  .external-image-option small {
+    color: #c6b58f;
   }
   .quick-start-grid article {
     background: #1c1e22;

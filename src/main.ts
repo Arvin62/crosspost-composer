@@ -2,7 +2,7 @@ import './styles/app.css';
 
 import { Editor } from './editor/editor';
 import { insertImages } from './editor/insert';
-import { htmlToBody } from './core/sanitize';
+import { htmlToBody, sanitizeImportedHtml } from './core/sanitize';
 import { markdownToHtml } from './core/markdown';
 import { writeText } from './core/clipboard';
 import { inlineStyles } from './core/inline-styles';
@@ -32,7 +32,11 @@ import { initThemePicker } from './ui/theme-picker';
 import { initImageToolbar } from './ui/image-toolbar';
 import { initImageCropper } from './ui/image-cropper';
 import { initImageMetadataDialog } from './ui/image-metadata';
-import { initImportDialog, type ImportFormat } from './ui/import-dialog';
+import {
+  initImportDialog,
+  type ImportFormat,
+  type ImportOptions,
+} from './ui/import-dialog';
 import { initSettings, loadSettings } from './ui/settings';
 import { initDocumentManager, type DocumentManager } from './ui/document-manager';
 import { initPlatformDialog } from './ui/platform-dialog';
@@ -266,7 +270,11 @@ documentManager = initDocumentManager({
 });
 
 /* ---------- 导入文章 ---------- */
-async function importContent(src: string, format: ImportFormat): Promise<boolean> {
+async function importContent(
+  src: string,
+  format: ImportFormat,
+  options: ImportOptions = { keepExternalImages: false },
+): Promise<boolean> {
   if (!src.trim()) {
     toast('内容是空的');
     return false;
@@ -282,18 +290,36 @@ async function importContent(src: string, format: ImportFormat): Promise<boolean
   await persistNow(false);
   if (!editor.hasWelcome) await saveVersion(currentDocument(), 'before-import', true);
   const raw = format === 'markdown' ? markdownToHtml(src) : src;
-  editor.setHTML(htmlToBody(raw));
+  const imported = sanitizeImportedHtml(raw, {
+    allowExternalImages: options.keepExternalImages,
+  });
+  editor.setHTML(imported.html);
   imageBar.deselect();
   if (currentDocument().title === '未命名文章') {
     currentDocument().title = inferDocumentTitle(editor.exportHTML());
   }
   onChanged();
   await persistNow(false);
-  toast(
-    format === 'markdown'
-      ? 'Markdown 已转换载入，可切换主题预览排版'
-      : '文章已载入，把光标点到段落上就可以插图了',
-  );
+  const { report } = imported;
+  if (report.externalImagesRemoved) {
+    toast(
+      `文章已载入；为保护隐私，已移除 ${report.externalImagesRemoved} 张网络图片，请改用本地图片`,
+      6000,
+    );
+  } else if (report.externalImagesKept) {
+    toast(
+      `文章已载入并保留 ${report.externalImagesKept} 张网络图片；图片服务器可能看到你的访问 IP`,
+      6000,
+    );
+  } else if (report.resourceStylesRemoved) {
+    toast(`文章已载入；已移除 ${report.resourceStylesRemoved} 条远程资源样式`, 5000);
+  } else {
+    toast(
+      format === 'markdown'
+        ? 'Markdown 已转换载入，可切换主题预览排版'
+        : '文章已载入，把光标点到段落上就可以插图了',
+    );
+  }
   return true;
 }
 

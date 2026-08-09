@@ -44,6 +44,8 @@ The web app requires no account, backend, terminal, or local installation.
 
 The application has no account system, content backend, analytics, or cloud sync. Documents and images stay in the current browser's IndexedDB and localStorage. Export a full backup before changing browsers, devices, or site data.
 
+HTML and Markdown imports remove network images, remote styles, and embedded resources by default. If you explicitly keep network images, the browser will contact those image hosts and they may record your IP address; retained images use a no-referrer policy.
+
 The public web app is hosted on GitHub Pages, which may process basic access information such as visitor IP addresses under [GitHub's own policies](https://docs.github.com/pages/getting-started-with-github-pages/what-is-github-pages#data-collection).
 
 ## Platform notes
