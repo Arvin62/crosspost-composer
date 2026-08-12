@@ -12,14 +12,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "verify": "npm test && npm run typecheck && npm run build",
+    "audit:ci": "npm audit --audit-level=moderate",
+    "security:secrets": "node scripts/check-repository-secrets.mjs"
   },
   "devDependencies": {
+    "@types/jsdom": "^27.0.0",
+    "jsdom": "^27.0.0",
     "typescript": "^7.0.2",
     "vite": "^8.1.5"
   },
   "dependencies": {
-    "dompurify": "^3.4.12",
+    "dompurify": "^3.4.13",
     "marked": "^18.0.7"
   }
 }

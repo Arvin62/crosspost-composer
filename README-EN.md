@@ -11,6 +11,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Arvin62/crosspost-composer/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Arvin62/crosspost-composer/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-3b82f6?style=flat-square" alt="PolyForm Noncommercial License 1.0.0"></a>
   <a href="COMMERCIAL-LICENSE.md"><img src="https://img.shields.io/badge/commercial%20use-license%20required-f59e0b?style=flat-square" alt="Commercial use requires a license"></a>
 </p>
@@ -73,6 +74,19 @@ npm test
 npm run typecheck
 npm run build
 ```
+
+## Maintenance and security
+
+Use the structured [Issue forms](https://github.com/Arvin62/crosspost-composer/issues/new/choose)
+for reproducible bugs, dated platform compatibility results, and feature requests.
+Report vulnerabilities privately under [SECURITY.md](SECURITY.md); never post an
+unpublished draft, workspace backup, cookie, token, or API key in a public issue.
+
+Maintainer responsibilities are recorded in [MAINTAINERS.md](MAINTAINERS.md), the
+current attack surface in the [threat model](docs/security/threat-model.md), and
+planned work in [ROADMAP.md](ROADMAP.md). Code pull requests remain paused until
+the inbound contribution and licensing policy is finalized; see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

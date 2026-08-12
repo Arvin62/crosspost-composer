@@ -14,6 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/Arvin62/crosspost-composer/actions/workflows/deploy.yml"><img src="https://img.shields.io/github/actions/workflow/status/Arvin62/crosspost-composer/deploy.yml?branch=main&style=flat-square&label=Pages" alt="GitHub Pages"></a>
+  <a href="https://github.com/Arvin62/crosspost-composer/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Arvin62/crosspost-composer/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
   <a href="https://github.com/Arvin62/crosspost-composer/releases/latest"><img src="https://img.shields.io/github/v/release/Arvin62/crosspost-composer?style=flat-square" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-3b82f6?style=flat-square" alt="PolyForm Noncommercial License 1.0.0"></a>
   <a href="COMMERCIAL-LICENSE.md"><img src="https://img.shields.io/badge/commercial%20use-license%20required-f59e0b?style=flat-square" alt="Commercial use requires a license"></a>
@@ -135,13 +136,10 @@ HTML 只导出当前文章，适合查看或交付；完整 JSON 备份包含全
 
 ## 最新更新
 
-### V1 · 2026-08-09
+### 2026-08-12
 
-- 发布图文排版台首个公开版本。
-- 支持文章导入、图文编辑、多文档管理、主题排版和多平台复制。
-- 支持自动保存、历史版本、查找替换以及完整数据备份与恢复。
-- 提供打开即用的在线入口，无需安装、登录或使用终端。
-- 导入文章时默认阻止外链图片和远程资源请求，并对主动保留网络图片给出隐私提示。
+- 更新 HTML 清洗依赖，修复其已公开的跨站脚本安全公告；导入文章时仍默认阻止网络图片、远程样式和嵌入资源。
+- 增加私下安全报告说明和结构化反馈入口，避免在公开 Issue 中泄露未发布稿件、完整备份或凭证。
 
 [查看完整发布记录](docs/releases/release-notes.md)
 
@@ -197,7 +195,9 @@ src/
 
 ## 反馈与贡献
 
-欢迎通过 [Issues](https://github.com/Arvin62/crosspost-composer/issues) 反馈问题和提出建议。为保持版权和商业授权边界清晰，在贡献者协议准备完成前暂不接收外部代码 Pull Request，详情见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+欢迎通过结构化 [Issues](https://github.com/Arvin62/crosspost-composer/issues/new/choose) 反馈问题、提交带日期的平台兼容性记录和提出建议。安全问题请按照 [SECURITY.md](SECURITY.md) 私下报告，不要公开真实稿件、备份或凭证。
+
+当前维护者职责见 [MAINTAINERS.md](MAINTAINERS.md)，安全边界见[威胁模型](docs/security/threat-model.md)，计划中的工作见 [ROADMAP.md](ROADMAP.md)。为保持版权和商业授权边界清晰，在贡献者协议准备完成前暂不接收外部代码 Pull Request，详情见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 许可证
 

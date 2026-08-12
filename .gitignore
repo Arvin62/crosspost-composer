@@ -4,3 +4,10 @@ dist-ssr
 *.local
 .DS_Store
 .vite
+.pro-workspace/
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx

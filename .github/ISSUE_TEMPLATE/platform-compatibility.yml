@@ -1,0 +1,57 @@
+name: Platform compatibility report
+description: Record dated paste behavior for a publishing platform
+title: "[Compatibility]: "
+labels: [compatibility, needs-triage]
+body:
+  - type: input
+    id: platform
+    attributes:
+      label: Publishing platform and editor
+      placeholder: WeChat Official Accounts web editor
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Verification date
+      placeholder: YYYY-MM-DD
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, operating system, and relevant account context
+      description: Do not include an account name, email, cookie, or ID.
+    validations:
+      required: true
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Output path tested
+      options:
+        - Platform copy
+        - Generic rich-text copy
+        - Exported HTML
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Synthetic test content
+      description: Describe the headings, paragraphs, links, and images used without sharing private material.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Observed result
+      description: Record what survived, changed, or failed after paste and preview.
+    validations:
+      required: true
+  - type: checkboxes
+    id: publish
+    attributes:
+      label: Confirmation
+      options:
+        - label: I verified the result in the destination editor preview; I did not publish private test content.
+          required: true
