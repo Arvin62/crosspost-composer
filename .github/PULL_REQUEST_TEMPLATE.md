@@ -18,10 +18,13 @@
 
 ## Licensing confirmation
 
-Code contributions are currently accepted only after the maintainer has confirmed
-the contribution terms in a linked Issue. Unsolicited code PRs may be closed
-without review; see [CONTRIBUTING.md](../CONTRIBUTING.md).
+Contributions use Apache-2.0 inbound=outbound terms and every commit must include
+a Developer Certificate of Origin sign-off; see
+[CONTRIBUTING.md](../CONTRIBUTING.md).
 
-- [ ] The maintainer confirmed this code contribution in Issue #____.
 - [ ] I have the right to submit every included file and identify any third-party
       source, generated material, or prior implementation here.
+- [ ] Every commit includes a `Signed-off-by` line matching the contributor's
+      real identity.
+- [ ] This PR contains no private PRO source, customer material, credentials,
+      unpublished drafts, or personal data.

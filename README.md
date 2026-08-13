@@ -16,8 +16,7 @@
   <a href="https://github.com/Arvin62/crosspost-composer/actions/workflows/deploy.yml"><img src="https://img.shields.io/github/actions/workflow/status/Arvin62/crosspost-composer/deploy.yml?branch=main&style=flat-square&label=Pages" alt="GitHub Pages"></a>
   <a href="https://github.com/Arvin62/crosspost-composer/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Arvin62/crosspost-composer/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
   <a href="https://github.com/Arvin62/crosspost-composer/releases/latest"><img src="https://img.shields.io/github/v/release/Arvin62/crosspost-composer?style=flat-square" alt="Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-3b82f6?style=flat-square" alt="PolyForm Noncommercial License 1.0.0"></a>
-  <a href="COMMERCIAL-LICENSE.md"><img src="https://img.shields.io/badge/commercial%20use-license%20required-f59e0b?style=flat-square" alt="Commercial use requires a license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3b82f6?style=flat-square" alt="Apache License 2.0"></a>
 </p>
 
 <p align="center">中文 · <a href="README-EN.md">English</a></p>
@@ -36,7 +35,7 @@
 
 > **普通用户直接打开[在线版](https://arvin62.github.io/crosspost-composer/)即可使用，不需要 Node.js，不需要终端，也不需要注册账号。**
 
-> **授权说明：**个人非商业使用免费；公司、工作室、代运营、付费客户项目、获得收益的内容业务、转售和商业集成等用途，需要提前取得[商业授权](COMMERCIAL-LICENSE.md)。本项目源码可见，但不是 OSI 定义的开源软件。
+> **开源许可：**本公共仓库自 2026-08-13 起按照 [Apache License 2.0](LICENSE) 发布，允许使用、修改、分发和商业使用，但必须遵守许可证及 [NOTICE](NOTICE) 要求。私有 PRO 产品不在本仓库中，边界说明见 [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)。
 
 ## 三步完成一次分发
 
@@ -136,10 +135,10 @@ HTML 只导出当前文章，适合查看或交付；完整 JSON 备份包含全
 
 ## 最新更新
 
-### 2026-08-12
+### 2026-08-13
 
-- 更新 HTML 清洗依赖，修复其已公开的跨站脚本安全公告；导入文章时仍默认阻止网络图片、远程样式和嵌入资源。
-- 增加私下安全报告说明和结构化反馈入口，避免在公开 Issue 中泄露未发布稿件、完整备份或凭证。
+- 公共核心现按照 Apache License 2.0 开源，允许在保留许可证、版权及 NOTICE 声明的前提下使用、修改、分发和商业使用。
+- 开放符合 Apache-2.0 和 DCO 签署要求的外部代码贡献；私有 PRO 产品及其专有代码仍与公共仓库隔离。
 
 [查看完整发布记录](docs/releases/release-notes.md)
 
@@ -197,14 +196,12 @@ src/
 
 欢迎通过结构化 [Issues](https://github.com/Arvin62/crosspost-composer/issues/new/choose) 反馈问题、提交带日期的平台兼容性记录和提出建议。安全问题请按照 [SECURITY.md](SECURITY.md) 私下报告，不要公开真实稿件、备份或凭证。
 
-当前维护者职责见 [MAINTAINERS.md](MAINTAINERS.md)，安全边界见[威胁模型](docs/security/threat-model.md)，计划中的工作见 [ROADMAP.md](ROADMAP.md)。为保持版权和商业授权边界清晰，在贡献者协议准备完成前暂不接收外部代码 Pull Request，详情见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+当前维护者职责见 [MAINTAINERS.md](MAINTAINERS.md)，安全边界见[威胁模型](docs/security/threat-model.md)，计划中的工作见 [ROADMAP.md](ROADMAP.md)。代码贡献按照 Apache-2.0 的 inbound=outbound 条款接收，并要求 DCO 签署，详情见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 许可证
 
 Copyright 2026 Arvin62.
 
-- 个人、学习、研究及其他符合条件的非商业用途：按照 [PolyForm Noncommercial License 1.0.0](LICENSE) 免费使用。
-- 公司、工作室、代运营、付费客户项目、获得收益的内容业务、转售、商业集成或托管服务：使用前必须取得[商业授权](COMMERCIAL-LICENSE.md)。
+- 公共仓库按照 [Apache License 2.0](LICENSE) 开源，允许使用、修改、分发和商业使用，但须保留许可证、版权及 [NOTICE](NOTICE) 中适用的声明。
+- 私有 PRO 产品、服务和未包含在本仓库中的专有代码不因本仓库的许可证而获得授权，详见[公共核心与私有产品边界](COMMERCIAL-LICENSE.md)。
 - 第三方依赖仍分别遵循各自许可证，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
-
-本项目是源码可见软件，不是 OSI 定义的开源软件。若无法判断自己的用途是否需要授权，请在使用前通过 GitHub Issues 联系 Arvin62。

@@ -12,8 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/Arvin62/crosspost-composer/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Arvin62/crosspost-composer/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-3b82f6?style=flat-square" alt="PolyForm Noncommercial License 1.0.0"></a>
-  <a href="COMMERCIAL-LICENSE.md"><img src="https://img.shields.io/badge/commercial%20use-license%20required-f59e0b?style=flat-square" alt="Commercial use requires a license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3b82f6?style=flat-square" alt="Apache License 2.0"></a>
 </p>
 
 <p align="center">
@@ -26,7 +25,7 @@ Crosspost Composer is built for creators who distribute the same illustrated art
 
 The web app requires no account, backend, terminal, or local installation.
 
-> **Licensing:** Qualifying personal and noncommercial use is free. Business, workplace, paid client, monetized publishing, resale, hosted-service, and commercial integration use requires a separate [commercial license](COMMERCIAL-LICENSE.md). The source is available, but this is not OSI-approved open-source software.
+> **Open-source license:** Starting 2026-08-13, this public repository is available under the [Apache License 2.0](LICENSE). Use, modification, redistribution, and commercial use are allowed subject to the license and [NOTICE](NOTICE). The private PRO product is not included in this repository; see the [boundary statement](COMMERCIAL-LICENSE.md).
 
 ## Workflow
 
@@ -84,16 +83,14 @@ unpublished draft, workspace backup, cookie, token, or API key in a public issue
 
 Maintainer responsibilities are recorded in [MAINTAINERS.md](MAINTAINERS.md), the
 current attack surface in the [threat model](docs/security/threat-model.md), and
-planned work in [ROADMAP.md](ROADMAP.md). Code pull requests remain paused until
-the inbound contribution and licensing policy is finalized; see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+planned work in [ROADMAP.md](ROADMAP.md). Code contributions are accepted under
+Apache-2.0 inbound=outbound terms with a Developer Certificate of Origin sign-off;
+see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
 Copyright 2026 Arvin62.
 
-- Qualifying personal and noncommercial use is available under the [PolyForm Noncommercial License 1.0.0](LICENSE).
-- Commercial use requires a separate written [commercial license](COMMERCIAL-LICENSE.md) from Arvin62 before use.
+- The public repository is open source under the [Apache License 2.0](LICENSE). Use, modification, redistribution, and commercial use are allowed subject to the license and applicable [NOTICE](NOTICE) requirements.
+- The private PRO product, services, and proprietary code not included in this repository are outside this repository's license; see the [public-core/private-product boundary](COMMERCIAL-LICENSE.md).
 - Third-party components remain under their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-This is source-available software, not OSI-approved open-source software.

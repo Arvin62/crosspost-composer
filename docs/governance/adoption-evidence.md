@@ -29,6 +29,7 @@ Repository: <https://github.com/Arvin62/crosspost-composer>
 |---|---|---|---|
 | 2026-08-09 | Initial public release | [`v1.0.0`](https://github.com/Arvin62/crosspost-composer/releases/tag/v1.0.0) | Packaging, documentation, and Pages delivery |
 | 2026-08-09 | Blocked silent external-resource loading during import | [`88e04e1`](https://github.com/Arvin62/crosspost-composer/commit/88e04e1) | Privacy boundary and hostile-input maintenance |
+| 2026-08-13 | Added public security policy, threat model, CI, CodeQL, dependency automation, and structured contribution workflows | [PR #1](https://github.com/Arvin62/crosspost-composer/pull/1) | Security hardening, review gates, release safety, and long-term maintenance governance |
 
 Add a maintenance event only after its commit, Issue, advisory, PR, release, or
 compatibility report is publicly accessible. Security details must remain private

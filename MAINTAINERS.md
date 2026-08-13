@@ -38,6 +38,7 @@ support. A future maintainer change must update this file in the same pull reque
 and describe the granted responsibilities. Removing access for security or
 inactivity must also be recorded without exposing private incident details.
 
-The source contribution and licensing model is still being finalized. Until the
-policy in [CONTRIBUTING.md](CONTRIBUTING.md) changes, Issue reports and testable
-compatibility evidence are welcome, while unsolicited code pull requests are not.
+Code contributions are accepted under Apache-2.0 inbound=outbound terms with a
+Developer Certificate of Origin sign-off. Maintainers verify contribution rights,
+security-sensitive changes, and the public-core/private-PRO boundary before merge;
+see [CONTRIBUTING.md](CONTRIBUTING.md).
