@@ -38,6 +38,38 @@ test('hostile imports cannot execute active content or silently load resources',
   assert.equal(imported.report.resourceStylesRemoved, 1);
 });
 
+test('nested active and auto-loading tags cannot reappear after neutralization', () => {
+  const imported = sanitizeImportedHtml(`
+    <scr<script>globalThis.compromised = true</script>ipt>
+      globalThis.compromisedAgain = true
+    </script>
+    <ifr<iframe src="https://tracker.example/inner"></iframe>ame
+      src="https://tracker.example/reintroduced">tracking</iframe>
+    <p>Safe nested text</p>
+  `);
+
+  assert.match(imported.html, /Safe nested text/);
+  assert.doesNotMatch(imported.html, /script|iframe|tracker\.example|compromised/i);
+});
+
+test('encoded image schemes are classified after pure entity decoding', () => {
+  const encodedRemote = sanitizeImportedHtml(
+    '<img src="&#x68;ttps&#58;//images.example/article.png">',
+  );
+  const encodedLocal = sanitizeImportedHtml(
+    '<img src="d&#x61;ta:image/png;base64,AAAA">',
+  );
+  const encodedScript = sanitizeImportedHtml(
+    '<img src="j&#x61;vascript:alert(1)">',
+    { allowExternalImages: true },
+  );
+
+  assert.equal(encodedRemote.report.externalImagesRemoved, 1);
+  assert.match(encodedLocal.html, /src="data:image\/png;base64,AAAA"/);
+  assert.equal(encodedScript.report.invalidImagesRemoved, 1);
+  assert.doesNotMatch(encodedScript.html, /javascript|img/i);
+});
+
 test('remote images require opt-in and receive privacy attributes', () => {
   const source = '<p>Text</p><img src="https://images.example/article.png" alt="Example">';
   const blocked = sanitizeImportedHtml(source);

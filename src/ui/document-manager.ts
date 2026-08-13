@@ -4,6 +4,7 @@ import {
   type ComposerDocument,
   type DocumentSnapshot,
 } from '../core/documents';
+import { countMarkupTextCharacters } from '../core/text-metrics';
 import { toast } from './toast';
 
 export interface DocumentManagerActions {
@@ -73,7 +74,7 @@ export function initDocumentManager(actions: DocumentManagerActions): DocumentMa
       const title = document.createElement('strong');
       title.textContent = doc.title;
       const meta = document.createElement('span');
-      meta.textContent = `${formatDate(doc.updatedAt)} · ${doc.html.replace(/<[^>]*>/g, '').length} 字`;
+      meta.textContent = `${formatDate(doc.updatedAt)} · ${countMarkupTextCharacters(doc.html)} 字`;
       button.append(title, meta);
       button.addEventListener('click', async () => {
         if (doc.id === actions.getActive().id) return;

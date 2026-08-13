@@ -1,6 +1,6 @@
 {
   "name": "crosspost-composer",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "一次插图，多平台粘贴 —— 面向公众号 / 知乎 / 头条号 / 汽车之家等平台的本地图文排版工具。Compose once, paste everywhere.",
   "type": "module",
   "license": "Apache-2.0",
