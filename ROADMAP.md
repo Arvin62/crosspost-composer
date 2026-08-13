@@ -26,16 +26,14 @@ real user reports or security findings provide stronger evidence.
 - Keep network access opt-in and exclude publishing credentials from the core.
 - Publish examples only after the interface has tests and a versioning policy.
 
-## Community and licensing decision
+## Community and licensing baseline
 
-The repository currently uses PolyForm Noncommercial 1.0.0 and does not claim to
-be OSI-approved open source. Before opening code pull requests, the maintainer will
-audit authorship and third-party material, decide whether an OSI-licensed community
-core is sustainable, and publish unambiguous inbound contribution terms. Until
-then, reproducible Issues and compatibility evidence are the supported contribution
-path; the license will not be relabeled without actually changing its permissions.
-The current evidence and maintainer sign-off gate are tracked in the
-[open-source readiness review](docs/governance/open-source-readiness.md).
+The public core is licensed under Apache-2.0, while unpublished PRO components and
+services remain outside this repository. Code contributions use Apache-2.0
+inbound=outbound terms and require a Developer Certificate of Origin sign-off.
+The completed rights review and public/private boundary are recorded in the
+[open-source readiness review](docs/governance/open-source-readiness.md) and
+[boundary statement](COMMERCIAL-LICENSE.md).
 
 ## Adoption evidence
 

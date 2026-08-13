@@ -1,8 +1,8 @@
 THIRD-PARTY LICENSES FOR CROSSPOST COMPOSER
 
 This distribution includes third-party software under the license terms below.
-The PolyForm Noncommercial License for Crosspost Composer does not replace or
-restrict the licenses of these third-party components.
+The Apache License 2.0 for Crosspost Composer does not replace or restrict the
+licenses of these third-party components.
 
 ================================================================================
 DOMPurify 3.4.13

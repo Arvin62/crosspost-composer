@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "一次插图，多平台粘贴 —— 面向公众号 / 知乎 / 头条号 / 汽车之家等平台的本地图文排版工具。Compose once, paste everywhere.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=22.12.0"
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy-license-notices.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",

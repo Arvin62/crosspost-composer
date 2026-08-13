@@ -1,118 +1,115 @@
 # Open-source readiness review / 开源准备审计
 
-Review date: 2026-08-12
+- Initial review: 2026-08-12
+- Maintainer approval: 2026-08-13
 
-This is a repository evidence review, not legal advice. It records what can be
-verified from the current Git history and installed packages, and separates that
-evidence from the maintainer attestations still required before relicensing.
+This is a repository evidence and decision record, not legal advice. It documents
+the checks completed before the public core moved from PolyForm Noncommercial
+1.0.0 to Apache License 2.0.
 
-本文件记录当前仓库可验证的作者、依赖、分发和授权证据，不替代法律意见，也不会
-自动改变现有许可证。在维护者完成待确认事项之前，项目继续使用 PolyForm
-Noncommercial 1.0.0，并继续明确说明自己不是 OSI 定义的开源软件。
+本文件记录公共核心重许可前完成的权属、依赖、分发和私有产品边界审查，不替代法律意见。
+维护者于 2026-08-13 完成权利确认并批准 Apache-2.0；该许可适用于从本次变更起发布的
+公共仓库版本，早期已分发副本继续遵循其获得时的许可证。
 
-## Current conclusion / 当前结论
+## Conclusion / 结论
 
-The public V1 codebase is technically compatible with a future Apache-2.0
-community-core release: it has one recorded Git author, no submodules or vendored
-source tree, and only permissively licensed runtime dependencies. The remaining
-blocker is not dependency compatibility; it is the maintainer's written
-confirmation that all repository-owned code, documentation, themes, and artwork
-are original or otherwise eligible for relicensing.
+The public repository is eligible for Apache-2.0 relicensing based on the verified
+tree and the copyright holder's attestation. The transition is implemented
+atomically with the canonical license text, NOTICE, package metadata, public
+documentation, contribution terms, and distributed third-party notices.
 
-当前公开 V1 在技术上具备转换为 Apache-2.0 社区核心的条件：Git 历史只有一位记录
-作者，没有子模块或直接复制进仓库的第三方源码，运行时依赖均允许宽松再分发。
-尚未满足的关键条件，是维护者需要确认所有自有代码、文档、主题和图片均为原创，
-或已经取得足以重许可的权利。
+公共仓库已经具备采用 Apache-2.0 的条件。本次变更同时更新完整许可证、NOTICE、包元数据、
+公开文档、贡献条款和第三方声明，避免“允许商用”与“禁止商用”的表述同时存在。
 
 ## Evidence matrix / 证据矩阵
 
-| Area | Evidence verified on 2026-08-12 | Status |
+| Area | Evidence verified | Status |
 |---|---|---|
-| Commit authorship | Public history contains two commits, both authored by `Arvin62` | Verified, but Git attribution alone is not proof of copyright ownership |
-| Vendored code | No Git submodules, vendored source directory, copied SDK, font, icon pack, or external image file was found | Verified for the current tree |
-| Runtime dependencies | DOMPurify 3.4.13 is used under Apache-2.0 from its dual license; Marked 18.0.7 is MIT | Compatible with Apache-2.0 distribution |
-| Development dependencies | TypeScript is Apache-2.0; Vite, jsdom, and `@types/jsdom` are MIT and are not shipped as application source | Compatible |
-| Distributed notices | The production build includes `third-party-licenses.txt` with DOMPurify and Marked notices | Verified |
-| Repository artwork | `docs/hero.svg` contains local vector shapes, gradients, filters, and system-font references; it does not embed an external image or font | Technical inspection complete; authorship attestation pending |
-| Private product separation | `.pro-workspace/` is excluded from Git and is not part of the public V1 distribution | Verified locally; keep this invariant in review and CI |
-| Inbound contributions | External code PRs are currently paused and there are no external contributors in public history | No third-party contributor consent is currently needed; policy must change before accepting code |
+| Repository authorship | GitHub listed `Arvin62` as the sole public contributor at the decision date | Verified; maintainer attestation supplies the rights confirmation that Git attribution alone cannot prove |
+| Vendored code | No Git submodules, vendored source directory, copied SDK, font, icon pack, or external image file was found | Verified for the transition tree |
+| Runtime dependencies | DOMPurify 3.4.13 is selected under Apache-2.0 from its dual license; Marked 18.0.7 is MIT | Compatible |
+| Development dependencies | TypeScript is Apache-2.0; Vite, jsdom, and `@types/jsdom` are permissively licensed and are not shipped as application source | Compatible |
+| Distributed notices | The production build contains `third-party-licenses.txt`; repository distributions retain `THIRD_PARTY_NOTICES.md` and `NOTICE` | Verified |
+| Repository artwork | `docs/hero.svg` contains local vector shapes, gradients, filters, and system-font references; it embeds no external image or font | Technical review and authorship attestation complete |
+| Private product separation | `.pro-workspace/` is ignored and absent from the public Git tree | Verified; proprietary PRO components remain outside this repository |
+| Inbound contributions | No external contributor code was present before relicensing | No third-party relicensing consent required for the transition |
 
-## Maintainer attestations still required / 维护者仍需确认
+## Maintainer attestation / 维护者确认
 
-Before changing `LICENSE`, the copyright holder should confirm all of the following
-in the relicensing pull request:
+On 2026-08-13, Arvin62 confirmed that the public repository's owned code,
+documentation, themes, data, and artwork are original or otherwise controlled with
+rights sufficient for Apache-2.0 relicensing. The maintainer also confirmed that:
 
-- all non-dependency source files were written by Arvin62 or created on Arvin62's
-  behalf with rights that allow open-source relicensing;
-- no implementation was copied from a repository, paid template, commercial
-  editor, browser extension, book, course, or code answer with incompatible terms;
-- `docs/hero.svg`, theme presets, product copy, and documentation are original or
-  have explicit relicensing permission;
-- no employer, client, studio, or other organization owns or restricts the work;
-- the public tree contains no private PRO source, customer material, credentials,
-  unpublished articles, or personal data.
+- no implementation in the public tree is subject to an incompatible repository,
+  template, course, code-answer, employer, client, or studio restriction;
+- no private PRO source, customer material, credential, unpublished article, or
+  personal data is included in the public tree;
+- the maintainer understands that Apache-2.0 permits commercial use, modification,
+  and redistribution, and that permissions already granted for a published version
+  cannot later be withdrawn from recipients of that version.
 
-这些确认不能由提交用户名、代码风格或自动扫描代替。若任何一项不能确认，应先删除、
-重写或单独取得许可，而不是直接更换 LICENSE 文件。
+These attestations are copyright-holder statements; automated scans and Git
+metadata were used only as supporting evidence.
 
-## Recommended target model / 推荐授权结构
+## Adopted licensing model / 已采用的授权结构
 
 ### Public community core
 
-Use Apache License 2.0 for the browser application and reusable conversion core.
-Apache-2.0 is OSI-approved, permits commercial use, includes an express patent
-grant, and is compatible with the selected licenses of the current runtime
-dependencies. The public repository should include:
+The browser application, reusable conversion core, tests, and public documentation
+in this repository use Apache License 2.0. The distribution includes:
 
-- the unmodified Apache-2.0 text as `LICENSE`;
-- an accurate `NOTICE` file and the existing third-party notices;
+- the canonical Apache-2.0 text as `LICENSE`;
+- project attribution in `NOTICE` and the public/private boundary in
+  `COMMERCIAL-LICENSE.md`;
 - `"license": "Apache-2.0"` in package metadata;
-- README language that describes the repository as open source without a
-  noncommercial restriction;
-- a contribution policy using Apache-2.0 inbound=outbound terms plus a Developer
-  Certificate of Origin sign-off, unless legal advice establishes a need for a CLA.
+- third-party notices in both repository and web-distribution forms;
+- Apache-2.0 inbound=outbound contribution terms plus Developer Certificate of
+  Origin sign-off requirements.
 
-Apache-2.0 already allows commercial use of contributions. A private hosted service
-or separate PRO product may build on the public core without requiring contributors
-to assign copyright, provided applicable Apache notices and license obligations are
-preserved in distributions.
+Contributors retain copyright in their original contributions. Apache-2.0 already
+permits commercial use, so public-core contributors are not asked to assign
+copyright for a separate commercial relicensing program.
 
 ### Private PRO product
 
-Keep customer-specific workflows, hosted services, private integrations, premium
-automation, and commercial support outside the submitted public repository. The
-boundary must be architectural and visible in Git, not merely described in pricing
-copy. Public security fixes to shared core code should be released publicly first
-or at the same time as the private product update.
+Customer-specific workflows, hosted services, private integrations, premium
+automation, support, and unpublished proprietary code remain outside this public
+repository. If a private product reuses the public core, the public-core portion
+remains under Apache-2.0. Public security fixes to shared core code should be
+released publicly first or at the same time as private-product updates.
 
-## Relicensing change set / 重许可变更清单
+See [COMMERCIAL-LICENSE.md](../../COMMERCIAL-LICENSE.md) for the public-core and
+private-product boundary. That document does not restrict rights granted by
+Apache-2.0.
 
-When the maintainer attestations are complete, perform the transition atomically in
-one reviewed pull request:
+## Transition checklist / 转换清单
 
-1. replace PolyForm Noncommercial with the canonical Apache-2.0 license text;
-2. add `NOTICE` and retain third-party license notices;
-3. update `package.json`, README files, in-app license link and commercial-license
-   wording so no noncommercial restriction remains on the public core;
-4. replace the current PR pause with Apache-2.0 inbound contribution terms and a
-   DCO sign-off requirement;
-5. document the exact public-core/private-PRO boundary without publishing private
-   source or customer data;
-6. run tests, type checking, production build, dependency audit, secret scan, and
-   inspect the built distribution before merging;
-7. publish a release that clearly states the effective version and date. Earlier
-   copies remain governed by the license under which they were distributed.
+- [x] Copyright holder confirmed ownership and relicensing authority.
+- [x] Canonical Apache-2.0 text replaced the former repository license.
+- [x] `NOTICE`, README files, application footer, package metadata, and third-party
+      notices were aligned.
+- [x] Noncommercial-only wording was removed from current-version documentation.
+- [x] Contribution policy changed to Apache-2.0 inbound=outbound plus DCO sign-off.
+- [x] Public-core/private-PRO separation was documented without publishing private
+      source or customer data.
+- [x] Local tests, type checking, build, dependency audit, secret scan, and
+      built-distribution inspection passed on the transition branch.
+- [x] GitHub pull-request verify and CodeQL checks passed for PR #8.
+- [ ] After merge, publish a dated release that identifies the first Apache-2.0
+      version. Earlier copies remain governed by their original distribution terms.
 
 ## Decision record / 决策记录
 
-- Current license: PolyForm Noncommercial 1.0.0.
-- Recommended future public-core license: Apache-2.0.
+- Previous public license: PolyForm Noncommercial 1.0.0.
+- Approved public-core license: Apache-2.0.
 - Decision owner: Arvin62.
-- Decision status: pending maintainer attestations and explicit approval.
-- No license change was made by this review.
+- Approval date: 2026-08-13.
+- Effective boundary: public repository versions published from this transition
+  onward; private PRO components not published here remain separate.
 
 Primary references:
 
 - [OSI approved license list](https://opensource.org/licenses)
+- [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 - [Apache guidance for applying Apache-2.0](https://www.apache.org/legal/apply-license)
 - [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)
