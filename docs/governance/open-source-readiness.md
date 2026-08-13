@@ -94,7 +94,7 @@ Apache-2.0.
       source or customer data.
 - [x] Local tests, type checking, build, dependency audit, secret scan, and
       built-distribution inspection passed on the transition branch.
-- [ ] GitHub pull-request checks must pass before merge.
+- [x] GitHub pull-request verify and CodeQL checks passed for PR #8.
 - [ ] After merge, publish a dated release that identifies the first Apache-2.0
       version. Earlier copies remain governed by their original distribution terms.
 
