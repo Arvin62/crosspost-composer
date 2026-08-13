@@ -36,8 +36,21 @@ const FORBID_ATTR = [
   'data-sel',
 ];
 
-const ACTIVE_CONTENT = /<(script|style|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
-const AUTO_LOADING_TAG = /<\/?(?:iframe|frame|frameset|object|embed|audio|video|source|track|link|meta|base)\b[^>]*>/gi;
+const ACTIVE_CONTENT_TAGS = new Set(['script', 'style', 'template']);
+const AUTO_LOADING_TAGS = new Set([
+  'iframe',
+  'frame',
+  'frameset',
+  'object',
+  'embed',
+  'audio',
+  'video',
+  'source',
+  'track',
+  'link',
+  'meta',
+  'base',
+]);
 const IMG_TAG = /<img\b[^>]*>/gi;
 const STYLE_ATTRIBUTE = /\s+style\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi;
 const SRC_ATTRIBUTE = /\s+src\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi;
@@ -63,6 +76,13 @@ interface NeutralizedMarkup {
   html: string;
   imageSources: string[];
   styles: string[];
+}
+
+interface MarkupTag {
+  closing: boolean;
+  end: number;
+  name: string;
+  nestedAt: number | null;
 }
 
 /** 仅把会自动发起网络请求的 http(s) / 协议相对地址视为外链图片。 */
@@ -100,15 +120,187 @@ export function stripExternalStyleResources(style: string): { value: string; rem
   return { value: safe, removed };
 }
 
-function decodeAttribute(value: string): string {
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = value;
-  return textarea.value;
+const ATTRIBUTE_ENTITIES: Record<string, string> = {
+  amp: '&',
+  apos: "'",
+  gt: '>',
+  lt: '<',
+  quot: '"',
+};
+
+/**
+ * Decode only explicit, semicolon-terminated entities without asking the browser
+ * to reinterpret untrusted text as HTML. Unknown names stay literal and therefore
+ * cannot turn into a hidden URL scheme when the value is written to an attribute.
+ */
+export function decodeAttributeEntities(value: string): string {
+  let decoded = '';
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    if (value[cursor] !== '&') {
+      decoded += value[cursor];
+      cursor++;
+      continue;
+    }
+
+    const semicolon = value.indexOf(';', cursor + 1);
+    if (semicolon < 0 || semicolon - cursor > 16) {
+      decoded += '&';
+      cursor++;
+      continue;
+    }
+
+    const token = value.slice(cursor + 1, semicolon);
+    let replacement: string | undefined;
+    if (/^#[0-9]+$/.test(token)) {
+      const codePoint = Number(token.slice(1));
+      if (Number.isSafeInteger(codePoint) && codePoint > 0 && codePoint <= 0x10ffff) {
+        replacement = String.fromCodePoint(codePoint);
+      }
+    } else if (/^#x[0-9a-f]+$/i.test(token)) {
+      const codePoint = Number.parseInt(token.slice(2), 16);
+      if (Number.isSafeInteger(codePoint) && codePoint > 0 && codePoint <= 0x10ffff) {
+        replacement = String.fromCodePoint(codePoint);
+      }
+    } else {
+      replacement = ATTRIBUTE_ENTITIES[token];
+    }
+
+    if (replacement === undefined) {
+      decoded += value.slice(cursor, semicolon + 1);
+    } else {
+      decoded += replacement;
+    }
+    cursor = semicolon + 1;
+  }
+
+  return decoded;
 }
 
 function extractBody(markup: string): string {
   const body = markup.match(/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i);
   return body?.[1] ?? markup;
+}
+
+function isTagNameCharacter(character: string): boolean {
+  const code = character.charCodeAt(0);
+  return (
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122) ||
+    character === ':' ||
+    character === '-'
+  );
+}
+
+/** Read one tag without creating DOM nodes or interpreting attributes. */
+function readMarkupTag(markup: string, start: number): MarkupTag | null {
+  let cursor = start + 1;
+  let closing = false;
+  if (markup[cursor] === '/') {
+    closing = true;
+    cursor++;
+  }
+  while (/\s/.test(markup[cursor] ?? '')) cursor++;
+
+  const nameStart = cursor;
+  while (cursor < markup.length && isTagNameCharacter(markup[cursor])) cursor++;
+  if (cursor === nameStart) return null;
+  const name = markup.slice(nameStart, cursor).toLowerCase();
+
+  let quote = '';
+  for (; cursor < markup.length; cursor++) {
+    const character = markup[cursor];
+    if (quote) {
+      if (character === quote) quote = '';
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === '<') {
+      return { closing, end: cursor, name, nestedAt: cursor };
+    }
+    if (character === '>') {
+      return { closing, end: cursor + 1, name, nestedAt: null };
+    }
+  }
+  return null;
+}
+
+/**
+ * Remove active-content bodies and auto-loading tags using a single-pass scanner.
+ * A malformed tag containing another unquoted "<" is escaped at its first
+ * delimiter, then the nested tag is evaluated normally on the next iteration.
+ */
+function stripActiveAndAutoLoadingElements(source: string): string {
+  let safe = '';
+  let cursor = 0;
+  let blockedTag = '';
+  let blockedDepth = 0;
+
+  while (cursor < source.length) {
+    const tagStart = source.indexOf('<', cursor);
+    if (tagStart < 0) {
+      if (!blockedTag) safe += source.slice(cursor);
+      break;
+    }
+
+    if (!blockedTag) safe += source.slice(cursor, tagStart);
+    const tag = readMarkupTag(source, tagStart);
+    if (!tag) {
+      if (!blockedTag) safe += '&lt;';
+      cursor = tagStart + 1;
+      continue;
+    }
+
+    if (tag.nestedAt !== null) {
+      if (!blockedTag) {
+        const dangerousPrefix = [...ACTIVE_CONTENT_TAGS, ...AUTO_LOADING_TAGS].find(
+          (name) => tag.name.length >= 2 && name.startsWith(tag.name),
+        );
+        if (dangerousPrefix) {
+          blockedTag = dangerousPrefix;
+          blockedDepth = 1;
+        } else {
+          safe += `&lt;${source.slice(tagStart + 1, tag.nestedAt)}`;
+        }
+      }
+      cursor = tag.nestedAt;
+      continue;
+    }
+
+    if (blockedTag) {
+      if (tag.name === blockedTag) {
+        if (tag.closing) blockedDepth--;
+        else blockedDepth++;
+        if (blockedDepth === 0) blockedTag = '';
+      }
+      cursor = tag.end;
+      continue;
+    }
+
+    if (ACTIVE_CONTENT_TAGS.has(tag.name)) {
+      if (!tag.closing) {
+        blockedTag = tag.name;
+        blockedDepth = 1;
+      }
+      cursor = tag.end;
+      continue;
+    }
+
+    if (AUTO_LOADING_TAGS.has(tag.name)) {
+      cursor = tag.end;
+      continue;
+    }
+
+    safe += source.slice(tagStart, tag.end);
+    cursor = tag.end;
+  }
+
+  return safe;
 }
 
 /**
@@ -118,7 +310,7 @@ function extractBody(markup: string): string {
 function neutralizeLoadingResources(source: string): NeutralizedMarkup {
   const imageSources: string[] = [];
   const styles: string[] = [];
-  let html = source.replace(ACTIVE_CONTENT, '').replace(AUTO_LOADING_TAG, '');
+  let html = stripActiveAndAutoLoadingElements(source);
   html = extractBody(html);
 
   html = html.replace(IMG_TAG, (tag) => {
@@ -158,7 +350,7 @@ function sanitizeMarkup(source: string, allowExternalImages: boolean): Sanitized
 
   template.content.querySelectorAll<HTMLElement>('[data-cpc-import-style]').forEach((element) => {
     const index = Number(element.dataset.cpcImportStyle);
-    const original = decodeAttribute(neutralized.styles[index] ?? '');
+    const original = decodeAttributeEntities(neutralized.styles[index] ?? '');
     const safe = stripExternalStyleResources(original);
     report.resourceStylesRemoved += safe.removed;
     if (safe.value) element.setAttribute('style', safe.value);
@@ -167,7 +359,7 @@ function sanitizeMarkup(source: string, allowExternalImages: boolean): Sanitized
 
   template.content.querySelectorAll<HTMLImageElement>('img').forEach((image) => {
     const index = Number(image.dataset.cpcImportImage);
-    const sourceValue = decodeAttribute(neutralized.imageSources[index] ?? '').trim();
+    const sourceValue = decodeAttributeEntities(neutralized.imageSources[index] ?? '').trim();
     image.removeAttribute('data-cpc-import-image');
     if (isLocalImageSource(sourceValue)) {
       image.setAttribute('src', sourceValue);
