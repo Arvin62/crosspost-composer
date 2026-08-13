@@ -196,6 +196,13 @@ button:disabled {
 #formatBar button:hover {
   background: var(--bg);
 }
+#formatBar .tb-format-painter.active {
+  color: #fff;
+  background: var(--brand);
+}
+#formatBar .tb-format-painter.active:hover {
+  background: #0f56ba;
+}
 #formatBar .tb-sep {
   flex: none;
   width: 1px;
@@ -259,6 +266,10 @@ body.navigator-open main {
   line-height: 1.8;
   word-break: break-word;
   color: #26282c; /* 文章正文固定深色（面向浅色平台），不随工具深色模式变化 */
+}
+#editor.format-painter-active,
+#editor.format-painter-active * {
+  cursor: crosshair !important;
 }
 #editor img {
   max-width: 100%;

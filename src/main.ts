@@ -8,6 +8,7 @@ import { writeText } from './core/clipboard';
 import { inlineStyles } from './core/inline-styles';
 import { recompressDataURL, type ImageOptions } from './core/image';
 import { dataUrlByteSize, formatBytes } from './core/bytes';
+import { articleExportFilename } from './core/export-filename';
 import {
   createDocument,
   createSnapshot,
@@ -86,7 +87,7 @@ function applyTheme(id: string, markChanged = true): void {
 }
 
 applyTheme(themeId, false);
-initToolbar(editor.el, onChanged, () => editor.prepareForEditing());
+initToolbar(editor.el, onChanged, () => editor.prepareForEditing(), toast);
 const themePicker = initThemePicker(themeId, (id) => applyTheme(id));
 
 /* ---------- 编辑器附属工具 ---------- */
@@ -425,7 +426,7 @@ function exportFile(): void {
   const page = `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title.replace(/[<>&"]/g, '')}</title></head>\n<body>\n${inlined}\n</body></html>`;
   const anchor = document.createElement('a');
   anchor.href = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
-  anchor.download = `${title.replace(/[\\/:*?"<>|]/g, '-').slice(0, 60) || '文章'}-${new Date().toISOString().slice(0, 10)}.html`;
+  anchor.download = articleExportFilename(title);
   anchor.click();
   URL.revokeObjectURL(anchor.href);
   toast('已导出带当前主题的 HTML 文件');
