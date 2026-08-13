@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose a concrete workflow improvement and explain who maintains it
+title: "[Feature]: "
+labels: [enhancement, needs-triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Maintenance or publishing problem
+      description: Describe the repeated work or failure, not only the proposed UI.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current workaround
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Verifiable outcome
+      description: Explain how a maintainer could test that the request is solved.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Privacy, network, credential, or compatibility impact
+      description: State whether the feature would add uploads, remote requests, tokens, automation, or platform APIs.
+    validations:
+      required: true

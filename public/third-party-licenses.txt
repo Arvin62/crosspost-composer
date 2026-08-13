@@ -5,7 +5,7 @@ The PolyForm Noncommercial License for Crosspost Composer does not replace or
 restrict the licenses of these third-party components.
 
 ================================================================================
-DOMPurify 3.4.12
+DOMPurify 3.4.13
 Project: https://github.com/cure53/DOMPurify
 Selected license: Apache License 2.0
 ================================================================================

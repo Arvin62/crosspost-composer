@@ -2,7 +2,7 @@
 
 图文排版台使用以下第三方组件。项目自身的 [PolyForm Noncommercial License 1.0.0](LICENSE) 不会替代或限制这些组件各自的许可证。
 
-## DOMPurify 3.4.12
+## DOMPurify 3.4.13
 
 - 项目：https://github.com/cure53/DOMPurify
 - 作者：Dr.-Ing. Mario Heiderich, Cure53
