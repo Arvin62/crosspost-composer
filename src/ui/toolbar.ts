@@ -1,4 +1,5 @@
 import { commands } from '../editor/commands';
+import { initFormatPainter } from '../editor/format-painter';
 
 /**
  * 固定在顶栏下方的排版工具栏。让 WYSIWYG 编辑区真正可编辑：
@@ -15,6 +16,7 @@ export function initToolbar(
   editor: HTMLElement,
   onChange: () => void,
   prepare: () => void = () => {},
+  notify: (message: string, duration?: number) => void = () => {},
 ): void {
   const link = (): void => {
     const url = prompt('输入链接地址：', 'https://');
@@ -40,22 +42,18 @@ export function initToolbar(
       { label: '链接', title: '插入链接', run: link },
       { label: '— 分隔线', title: '插入分隔线', run: commands.horizontalRule },
     ],
-    [
-      { label: '清除格式', title: '清除行内格式并恢复段落', run: commands.clearFormat },
-      { label: '↶', title: '撤销', run: commands.undo },
-      { label: '↷', title: '重做', run: commands.redo },
-    ],
   ];
 
   const bar = document.createElement('div');
   bar.id = 'formatBar';
 
-  groups.forEach((group, i) => {
-    if (i > 0) {
-      const sep = document.createElement('span');
-      sep.className = 'tb-sep';
-      bar.appendChild(sep);
-    }
+  const appendSeparator = (): void => {
+    const sep = document.createElement('span');
+    sep.className = 'tb-sep';
+    bar.appendChild(sep);
+  };
+
+  const appendTools = (group: ToolItem[]): void => {
     for (const item of group) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -72,7 +70,30 @@ export function initToolbar(
       });
       bar.appendChild(btn);
     }
+  };
+
+  groups.forEach((group, i) => {
+    if (i > 0) appendSeparator();
+    appendTools(group);
   });
+
+  appendSeparator();
+  const painterButton = document.createElement('button');
+  painterButton.type = 'button';
+  painterButton.className = 'tb-format-painter';
+  painterButton.textContent = '格式刷';
+  painterButton.title = '吸取光标所在段落的格式，再点击目标段落';
+  painterButton.setAttribute('aria-pressed', 'false');
+  painterButton.addEventListener('mousedown', (event) => event.preventDefault());
+  bar.appendChild(painterButton);
+  initFormatPainter(editor, painterButton, onChange, notify);
+
+  appendSeparator();
+  appendTools([
+    { label: '清除格式', title: '清除行内格式并恢复段落', run: commands.clearFormat },
+    { label: '↶', title: '撤销', run: commands.undo },
+    { label: '↷', title: '重做', run: commands.redo },
+  ]);
 
   const header = document.querySelector('header');
   header?.insertAdjacentElement('afterend', bar);

@@ -33,12 +33,13 @@ The web app requires no account, backend, terminal, or local installation.
 
 ## Key features
 
-- Import HTML or Markdown and edit with a focused rich-text toolbar.
+- Import HTML or Markdown and edit with a focused rich-text toolbar, including a one-shot format painter that preserves the target text and links.
 - Paste, drag, compress, crop, rotate, caption, align, and reorder images.
 - Apply built-in themes and inline compatible styles when copying.
 - Generate platform-specific output for WeChat, Toutiao/Baijiahao, Autohome, Zhihu, and generic rich-text editors.
 - Manage multiple documents, autosaves, manual snapshots, search, outline navigation, and find/replace.
 - Export or restore a full JSON backup containing documents, embedded images, snapshots, and settings.
+- Export the current article as HTML with a local-date-first, filesystem-safe filename.
 
 ## Privacy
 
