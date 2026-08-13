@@ -30,9 +30,9 @@ Repository: <https://github.com/Arvin62/crosspost-composer>
 | GitHub stars | 0 | Repository public counters; do not describe this as broad adoption |
 | GitHub forks | 0 | Repository public counters |
 | Public contributors | 1 | Arvin62 remains the sole recorded human contributor |
-| Public releases | 2 | `v1.0.0` and `v1.1.0` |
+| Public releases | 3 | `v1.0.0`, `v1.1.0`, and `v1.1.1` |
 | Open Issues | 0 | No independent public issue report has been recorded |
-| Pull request activity | 10 total | 4 maintainer PRs merged; 6 Dependabot proposals remain under review |
+| Pull request activity | 12 total | 6 maintainer PRs merged; 6 Dependabot proposals remain under review |
 | Package downloads | Not applicable | No npm package has been published |
 | Public integrations | None verified | The deployed Pages app is a distribution channel, not an independent integration |
 
@@ -52,6 +52,7 @@ that has not been publicly verified.
 | 2026-08-13 | Added a one-shot format painter and local-date-first safe export filenames | [PR #9](https://github.com/Arvin62/crosspost-composer/pull/9) | User-facing implementation, hostile-attribute tests, browser acceptance, and release-note maintenance |
 | 2026-08-13 | Published the second public release with an attached static build and recorded digest | [`v1.1.0`](https://github.com/Arvin62/crosspost-composer/releases/tag/v1.1.0) | Version alignment, release packaging, license-notice delivery, and post-merge verification |
 | 2026-08-13 | Protected `main` with required current CI and CodeQL checks, PR-only changes, resolved discussions, and disabled force-push/deletion | [`main` branch API](https://api.github.com/repos/Arvin62/crosspost-composer/branches/main) | Enforced review path and release integrity for the sole maintainer |
+| 2026-08-13 | Removed five high-severity CodeQL findings in hostile import and text-metrics paths, added regression coverage, and published a verified security patch | [PR #12](https://github.com/Arvin62/crosspost-composer/pull/12) and [`v1.1.1`](https://github.com/Arvin62/crosspost-composer/releases/tag/v1.1.1) | Alert triage, root-cause remediation, protected-branch verification, and security release response |
 
 Add a maintenance event only after its commit, Issue, advisory, PR, release, or
 compatibility report is publicly accessible. Security details must remain private
@@ -82,7 +83,7 @@ work; independent reports additionally prove external use.
 
 As of 2026-08-13, the project must not be described as broadly adopted or as having
 independent community users. An application may accurately rely on its active
-maintenance record, second public release, deployed local-first workflow, security
+maintenance record, three public releases, deployed local-first workflow, security
 boundaries, and niche ecosystem value while disclosing 0 stars and 0 forks. Before
 making a future adoption claim, this ledger should contain several independent
 external signals over time and at least one public contribution or integration.
