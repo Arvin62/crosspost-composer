@@ -82,7 +82,7 @@ export function initToolbar(
   painterButton.type = 'button';
   painterButton.className = 'tb-format-painter';
   painterButton.textContent = '格式刷';
-  painterButton.title = '吸取光标所在段落的格式，再点击目标段落';
+  painterButton.title = '吸取段落格式，再点击或拖选目标段落；⌘A / Ctrl+A 应用到全文，Esc 取消';
   painterButton.setAttribute('aria-pressed', 'false');
   painterButton.addEventListener('mousedown', (event) => event.preventDefault());
   bar.appendChild(painterButton);
