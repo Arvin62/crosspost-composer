@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>格式刷验证样例</title>
+  <style>
+    body { margin:0; padding:24px; font-family:system-ui,sans-serif; color:#222; background:#f1f3f5 }
+    header, #formatBar, #status, #selection { max-width:720px; margin:12px auto }
+    #formatBar { display:flex; gap:8px; flex-wrap:wrap }
+    button { padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; background:white }
+    button.active { background:#2563eb; color:white }
+    #editor { max-width:672px; margin:18px auto; padding:24px; background:white; min-height:480px }
+    #editor p { font-size:16px; line-height:1.8; margin:0 0 20px; color:#2a2a2a }
+    #editor .format-painter-active { cursor:crosshair }
+    #status, #selection { min-height:24px; font-size:14px }
+  </style>
+</head>
+<body>
+  <header>格式刷验证：渐变标题、浅色卡片、加粗、多段和全选</header>
+  <div id="status" role="status">点击来源文字，再点格式刷，然后拖选下方三段。</div>
+  <div id="editor" contenteditable="true">
+    <section style="background:linear-gradient(to right,#dfe3ff,#eef0ff,#ffffff);border-radius:6px;padding:3px 18px;margin:40px 0 20px 0;font-size:19px;font-weight:700;color:#0a0cb9">01 浅色渐变标题来源</section>
+    <p>第一段目标文字</p><p><em>第二段目标文字</em></p><p>第三段目标文字</p>
+    <p>第四段保持原样</p>
+    <section style="background-color:#f6f7fb;border-radius:6px;padding:14px 16px;margin:0 0 20px;color:#444">
+      <p style="font-size:16px;line-height:1.8;margin:0"><strong style="font-weight:700;color:#1a1a2e">浅色卡片里的加粗来源</strong></p>
+      <p style="font-size:15px;line-height:1.7;margin:8px 0 0;color:#555">卡片里的第二段文字</p>
+    </section>
+  </div>
+  <div id="selection"></div>
+  <script type="module">
+    import { initToolbar } from '../../src/ui/toolbar.ts';
+    const editor = document.querySelector('#editor');
+    initToolbar(editor, () => {}, undefined, message => document.querySelector('#status').textContent = message);
+    document.addEventListener('selectionchange', () => {
+      const selection = document.getSelection();
+      document.querySelector('#selection').textContent = '当前选中文字：' + (selection?.toString() || '（光标）');
+    });
+  </script>
+</body>
+</html>

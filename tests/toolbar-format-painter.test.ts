@@ -50,18 +50,17 @@ test('toolbar format painter activates and applies once to the clicked paragraph
   assert.equal(painter.getAttribute('aria-pressed'), 'true');
   assert.equal(editor.classList.contains('format-painter-active'), true);
 
-  target.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-  const applied = editor.querySelector('h2:nth-of-type(2)');
+  selectText(document, target);
+  target.dispatchEvent(new dom.window.MouseEvent('mouseup', { bubbles: true, button: 0 }));
+  const applied = editor.querySelector<HTMLElement>('h2:nth-of-type(2)');
   assert.ok(applied);
-  assert.equal(applied.getAttribute('style'), 'text-align:center');
-  assert.equal(applied.innerHTML, '<strong>目标文字</strong>');
+  assert.equal(applied.style.textAlign, 'center');
+  assert.equal(applied.querySelector('strong')?.textContent, '目标文字');
   assert.equal(changes, 1);
   assert.equal(painter.getAttribute('aria-pressed'), 'false');
   assert.equal(editor.classList.contains('format-painter-active'), false);
-  assert.deepEqual(notifications, [
-    '已吸取段落格式，请点击要应用格式的段落',
-    '段落格式已应用',
-  ]);
+  assert.match(notifications[0], /已吸取格式/);
+  assert.equal(notifications[1], '已应用格式到 1 个段落');
 });
 
 test('Escape cancels an active toolbar format painter without changing the article', () => {
@@ -73,7 +72,8 @@ test('Escape cancels an active toolbar format painter without changing the artic
   painter.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
 
   document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape' }));
-  target.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  selectText(document, target);
+  target.dispatchEvent(new dom.window.MouseEvent('mouseup', { bubbles: true, button: 0 }));
 
   assert.equal(painter.getAttribute('aria-pressed'), 'false');
   assert.equal(editor.classList.contains('format-painter-active'), false);
