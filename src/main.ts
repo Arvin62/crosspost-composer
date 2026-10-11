@@ -216,7 +216,7 @@ function loadIntoEditor(doc: ComposerDocument, showWelcome = false): void {
   setActiveDocumentId(doc.id);
   applyTheme(doc.themeId || DEFAULT_THEME_ID, false);
   themePicker.set(themeId);
-  editor.setHTML(doc.html || (showWelcome ? WELCOME_HTML : '<p><br></p>'));
+  editor.setHTML(doc.html ? htmlToBody(doc.html) : (showWelcome ? WELCOME_HTML : '<p><br></p>'));
   imageBar.deselect();
   remoteImages.refresh();
   updateStats();
