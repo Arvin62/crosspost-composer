@@ -1,9 +1,10 @@
 import { toast } from './toast';
 import { DEFAULT_IMAGE_OPTIONS } from '../core/image';
 import type { ImageOptions } from '../core/image';
+import { validateImageService } from '../core/remote-images';
 
 /** 用户设置，持久化在本机浏览器。目前即图片处理参数。 */
-export type Settings = ImageOptions;
+export interface Settings extends ImageOptions { imageService: string }
 
 const KEY = 'settings';
 
@@ -17,9 +18,11 @@ export function loadSettings(): Settings {
     return {
       maxWidth: clamp(Number(s.maxWidth), 200, 4096, DEFAULT_IMAGE_OPTIONS.maxWidth),
       quality: clamp(Number(s.quality), 0.4, 1, DEFAULT_IMAGE_OPTIONS.quality),
+      preserveOriginal: s.preserveOriginal === true,
+      imageService: typeof s.imageService === 'string' ? validateImageService(s.imageService) : '',
     };
   } catch {
-    return { ...DEFAULT_IMAGE_OPTIONS };
+    return { ...DEFAULT_IMAGE_OPTIONS, imageService: '' };
   }
 }
 
@@ -36,13 +39,31 @@ export function initSettings(apply: (s: Settings) => void): { open(): void } {
   const dlg = document.querySelector<HTMLDialogElement>('#settingsDlg')!;
   const widthEl = document.querySelector<HTMLInputElement>('#setMaxWidth')!;
   const qualityEl = document.querySelector<HTMLInputElement>('#setQuality')!;
+  const serviceEl = document.querySelector<HTMLInputElement>('#setImageService')!;
+  const presetEl = document.querySelector<HTMLSelectElement>('#setImagePreset')!;
+  function syncPreset(): void {
+    const original = presetEl.value === 'original';
+    widthEl.disabled = original;
+    qualityEl.disabled = original;
+  }
+  presetEl.addEventListener('change', () => {
+    if (presetEl.value === '4k') { widthEl.value = '3840'; qualityEl.value = '95'; }
+    if (presetEl.value === '1080p') { widthEl.value = '1920'; qualityEl.value = '92'; }
+    syncPreset();
+  });
+  for (const input of [widthEl, qualityEl]) input.addEventListener('input', () => { presetEl.value = 'custom'; syncPreset(); });
 
   document.querySelector<HTMLButtonElement>('#setCancel')!.addEventListener('click', () => dlg.close());
 
   document.querySelector<HTMLButtonElement>('#setSave')!.addEventListener('click', () => {
+    let imageService: string;
+    try { imageService = validateImageService(serviceEl.value); }
+    catch (error) { toast(error instanceof Error ? error.message : '服务地址无效'); return; }
     const s: Settings = {
       maxWidth: clamp(parseInt(widthEl.value, 10), 200, 4096, DEFAULT_IMAGE_OPTIONS.maxWidth),
       quality: clamp(Math.round(Number(qualityEl.value)) / 100, 0.4, 1, DEFAULT_IMAGE_OPTIONS.quality),
+      imageService,
+      preserveOriginal: presetEl.value === 'original',
     };
     saveSettings(s);
     apply(s);
@@ -55,6 +76,9 @@ export function initSettings(apply: (s: Settings) => void): { open(): void } {
       const s = loadSettings();
       widthEl.value = String(s.maxWidth);
       qualityEl.value = String(Math.round(s.quality * 100));
+      serviceEl.value = s.imageService;
+      presetEl.value = s.preserveOriginal ? 'original' : s.maxWidth === 3840 && s.quality === 0.95 ? '4k' : s.maxWidth === 1920 && s.quality === 0.92 ? '1080p' : 'custom';
+      syncPreset();
       dlg.showModal();
     },
   };

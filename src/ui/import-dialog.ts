@@ -3,7 +3,7 @@ import { toast } from './toast';
 export type ImportFormat = 'html' | 'markdown';
 
 export interface ImportOptions {
-  keepExternalImages: boolean;
+  saveExternalImages: boolean;
 }
 
 /**
@@ -22,7 +22,18 @@ export function initImportDialog(
   const dlg = document.querySelector<HTMLDialogElement>('#importDlg')!;
   const srcEl = document.querySelector<HTMLTextAreaElement>('#importSrc')!;
   const htmlInput = document.querySelector<HTMLInputElement>('#htmlInput')!;
-  const keepExternalImages = document.querySelector<HTMLInputElement>('#keepExternalImages')!;
+  const saveExternalImages = document.querySelector<HTMLInputElement>('#saveExternalImages')!;
+  let busy = false;
+  async function load(src: string, format: ImportFormat): Promise<void> {
+    if (busy) return;
+    busy = true;
+    const buttons = [...dlg.querySelectorAll<HTMLButtonElement>('button')];
+    buttons.forEach((button) => { button.disabled = true; });
+    try {
+      if (await onImport(src, format, { saveExternalImages: saveExternalImages.checked }) && dlg.open) dlg.close();
+    } catch { toast('导入失败，请重试'); }
+    finally { busy = false; buttons.forEach((button) => { button.disabled = false; }); }
+  }
 
   const pastedFormat = (): ImportFormat =>
     dlg.querySelector<HTMLInputElement>('input[name="fmt"]:checked')?.value === 'markdown'
@@ -37,12 +48,7 @@ export function initImportDialog(
       toast('先粘贴内容，或点上面的按钮选文件');
       return;
     }
-    if (
-      (await onImport(v, pastedFormat(), { keepExternalImages: keepExternalImages.checked })) &&
-      dlg.open
-    ) {
-      dlg.close();
-    }
+    await load(v, pastedFormat());
   });
 
   document.querySelector<HTMLButtonElement>('#dlgFile')!.addEventListener('click', () => htmlInput.click());
@@ -52,20 +58,13 @@ export function initImportDialog(
     htmlInput.value = '';
     if (!f) return;
     const format: ImportFormat = /\.(md|markdown)$/i.test(f.name) ? 'markdown' : 'html';
-    if (
-      (await onImport(await f.text(), format, {
-        keepExternalImages: keepExternalImages.checked,
-      })) &&
-      dlg.open
-    ) {
-      dlg.close();
-    }
+    await load(await f.text(), format);
   });
 
   return {
     open() {
       srcEl.value = '';
-      keepExternalImages.checked = false;
+      saveExternalImages.checked = false;
       dlg.showModal();
       srcEl.focus();
     },

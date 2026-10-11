@@ -44,11 +44,14 @@ import { initPlatformDialog } from './ui/platform-dialog';
 import { initNavigator } from './ui/navigator';
 import { initHelpDataDialog } from './ui/help-data';
 import { WELCOME_HTML } from './ui/welcome';
+import { initRemoteImages } from './ui/remote-images';
+import { clipboardArticle, insertPastedHTML, isWholeEditorSelection } from './core/paste';
 
 const editor = new Editor(document.querySelector<HTMLElement>('#editor')!);
 const statsEl = document.querySelector<HTMLElement>('#stats')!;
 const saveHint = document.querySelector<HTMLElement>('#saveHint')!;
 const imageOptions: ImageOptions = loadSettings();
+let imageService = loadSettings().imageService;
 const cropper = initImageCropper();
 const imageMetadata = initImageMetadataDialog();
 
@@ -100,9 +103,15 @@ const imageBar = initImageToolbar(
 );
 const navigatorPanel = initNavigator(editor.el, onChanged);
 const importDialog = initImportDialog(importContent);
+const remoteImages = initRemoteImages(editor.el, onChanged, () => imageOptions, () =>
+  imageService || import.meta.env.VITE_IMAGE_SERVICE_URL ||
+    (import.meta.env.DEV ? new URL('/api/image', location.href).href : ''),
+);
 const settingsDialog = initSettings((settings) => {
   imageOptions.maxWidth = settings.maxWidth;
   imageOptions.quality = settings.quality;
+  imageOptions.preserveOriginal = settings.preserveOriginal;
+  imageService = settings.imageService;
 });
 const helpDataDialog = initHelpDataDialog({
   beforeBackup: () => persistNow(false),
@@ -133,7 +142,9 @@ function updateStats(): void {
 }
 
 function onChanged(): void {
+  remoteImages.refresh();
   updateStats();
+  if (!editor.hasWelcome) saveHint.textContent = '正在等待自动保存…';
   window.clearTimeout(navigatorTimer);
   navigatorTimer = window.setTimeout(() => navigatorPanel.refresh(), 120);
   window.clearTimeout(saveTimer);
@@ -199,6 +210,7 @@ async function saveVersion(
 }
 
 function loadIntoEditor(doc: ComposerDocument, showWelcome = false): void {
+  remoteImages.cancel();
   window.clearTimeout(saveTimer);
   activeDocument = doc;
   setActiveDocumentId(doc.id);
@@ -206,6 +218,7 @@ function loadIntoEditor(doc: ComposerDocument, showWelcome = false): void {
   themePicker.set(themeId);
   editor.setHTML(doc.html || (showWelcome ? WELCOME_HTML : '<p><br></p>'));
   imageBar.deselect();
+  remoteImages.refresh();
   updateStats();
   navigatorPanel.refresh();
   documentManager?.updateActiveLabel();
@@ -274,7 +287,7 @@ documentManager = initDocumentManager({
 async function importContent(
   src: string,
   format: ImportFormat,
-  options: ImportOptions = { keepExternalImages: false },
+  options: ImportOptions = { saveExternalImages: false },
 ): Promise<boolean> {
   if (!src.trim()) {
     toast('内容是空的');
@@ -290,9 +303,10 @@ async function importContent(
 
   await persistNow(false);
   if (!editor.hasWelcome) await saveVersion(currentDocument(), 'before-import', true);
+  remoteImages.cancel();
   const raw = format === 'markdown' ? markdownToHtml(src) : src;
   const imported = sanitizeImportedHtml(raw, {
-    allowExternalImages: options.keepExternalImages,
+    preserveExternalImages: true,
   });
   editor.setHTML(imported.html);
   imageBar.deselect();
@@ -302,7 +316,10 @@ async function importContent(
   onChanged();
   await persistNow(false);
   const { report } = imported;
-  if (report.externalImagesRemoved) {
+  if (report.externalImagesPending) {
+    toast(`文章已载入，${report.externalImagesPending} 张配图已保留原位置；${options.saveExternalImages ? '正在保存配图' : '点击“下载并保存配图”即可处理'}`, 6000);
+    if (options.saveExternalImages) void remoteImages.start();
+  } else if (report.externalImagesRemoved) {
     toast(
       `文章已载入；为保护隐私，已移除 ${report.externalImagesRemoved} 张网络图片，请改用本地图片`,
       6000,
@@ -436,6 +453,7 @@ async function clearAll(): Promise<void> {
   if (!confirm('确定清空当前文档？清空前会自动保存一份历史版本。')) return;
   await persistNow(false);
   await saveVersion(currentDocument(), 'before-clear', true);
+  remoteImages.cancel();
   editor.setHTML('<p><br></p>');
   imageBar.deselect();
   onChanged();
@@ -505,6 +523,23 @@ editor.el.addEventListener('drop', (event) => {
   void doInsert(files, ref);
 });
 editor.el.addEventListener('paste', (event) => {
+  const clipboard = event.clipboardData;
+  if (!clipboard) return;
+  const article = clipboardArticle(clipboard.getData('text/html'), clipboard.getData('text/plain'));
+  if (article) {
+    event.preventDefault();
+    if (!editor.hasWelcome && isWholeEditorSelection(editor.el)) {
+      const before = syncActiveDocument();
+      if (before) void saveVersion({ ...before }, 'before-import', true);
+    }
+    editor.prepareForEditing();
+    const imported = sanitizeImportedHtml(article, { preserveExternalImages: true });
+    insertPastedHTML(editor.el, imported.html);
+    imageBar.deselect();
+    onChanged();
+    if (imported.report.externalImagesPending) toast(`已保留 ${imported.report.externalImagesPending} 张配图位置，点击“下载并保存配图”即可处理`, 6000);
+    return;
+  }
   const files = [...(event.clipboardData?.files ?? [])];
   if (files.length) {
     event.preventDefault();

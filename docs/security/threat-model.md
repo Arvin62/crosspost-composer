@@ -43,8 +43,21 @@ the document cannot itself trigger a request.
 
 An imported tracking pixel, CSS `url()`, `@import`, iframe, media element, or
 protocol-relative resource could reveal the user's IP and document-open time.
-All such resources must be removed by default. Only remote images have an
-explicit opt-in path; scripts, remote styles, media, and embedded pages do not.
+Remote images are retained as inert placeholders on file import and rich-text
+paste, with URLs stored in non-loading metadata. Other loading resources are
+removed. Downloading images requires an explicit import checkbox or save action;
+scripts, remote styles, media, and embedded pages have no opt-in path.
+
+### Optional image download service
+
+The self-hosted service accepts image URLs only, never article text or browser
+credentials. It requires exact origin and image-host allowlists, checks every
+redirect and all DNS results, blocks non-public destinations, and pins the
+validated DNS result to the outgoing connection. It bounds request size, image
+size, concurrency, rates, redirects and deadlines. Responses are not cached and
+URLs are not logged. Public deployment still needs HTTPS and reverse-proxy rate
+and bandwidth limits; an Origin header is not authentication. Compression occurs
+in the browser. See [deployment instructions](../image-saving.md).
 
 ### Persistent malicious backup
 
@@ -76,10 +89,11 @@ Changes must preserve all of the following:
 
 1. Imported or restored content cannot execute scripts or event handlers.
 2. Import parsing cannot contact external resources before the user opts in.
-3. External images are blocked by default; opt-in images use `no-referrer`.
+3. Imported external images remain inert until opt-in; downloads omit credentials
+   and referrers, and successful images are embedded locally.
 4. Sanitization applies again when restoring persisted HTML.
-5. No article text, image, backup, credential, or analytics event is sent by an
-   application-owned backend because no such backend exists.
+5. Article text, backups, credentials and analytics are never sent to a backend.
+   The optional image service receives image URLs only and returns image bytes.
 6. Clipboard and export output are derived from sanitized application state.
 7. CI, deployment, and analysis workflows use least-privilege permissions and
    commit-pinned third-party actions.

@@ -35,6 +35,7 @@ The web app requires no account, backend, terminal, or local installation.
 
 - Import HTML or Markdown and edit with a focused rich-text toolbar, including a one-shot format painter that preserves the target text and links.
 - Paste, drag, compress, crop, rotate, caption, align, and reorder images.
+- Download imported or pasted remote images in place; use 4K high quality by default, or choose 1080P / original files in Settings.
 - Apply built-in themes and inline compatible styles when copying.
 - Generate platform-specific output for WeChat, Toutiao/Baijiahao, Autohome, Zhihu, and generic rich-text editors.
 - Manage multiple documents, autosaves, manual snapshots, search, outline navigation, and find/replace.
@@ -45,7 +46,7 @@ The web app requires no account, backend, terminal, or local installation.
 
 The application has no account system, content backend, analytics, or cloud sync. Documents and images stay in the current browser's IndexedDB and localStorage. Export a full backup before changing browsers, devices, or site data.
 
-HTML and Markdown imports remove network images, remote styles, and embedded resources by default. If you explicitly keep network images, the browser will contact those image hosts and they may record your IP address; retained images use a no-referrer policy.
+File imports and rich-text / HTML-source pastes preserve remote images as inert placeholders, including their positions and captions. Downloading requires an explicit save action. Successful images are embedded locally; failures can be retried or replaced in place. Non-CORS image sources require the optional download service, which receives image URLs only, not article text or browser credentials. See [usage and deployment](docs/image-saving.md).
 
 The public web app is hosted on GitHub Pages, which may process basic access information such as visitor IP addresses under [GitHub's own policies](https://docs.github.com/pages/getting-started-with-github-pages/what-is-github-pages#data-collection).
 

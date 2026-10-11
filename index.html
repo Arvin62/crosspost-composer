@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests" />
   <title>图文排版台 · 一次插图，多平台粘贴</title>
 </head>
 <body>
@@ -34,6 +34,12 @@
   </header>
 
   <main>
+    <section id="remoteImageBanner" class="remote-image-banner" hidden aria-label="文章配图保存">
+      <div><strong id="remoteImageSummary" role="status" aria-live="polite"></strong><small>点击保存会访问图片来源；配置下载服务时，仅发送图片地址。图片会随文章保存在当前浏览器。</small></div>
+      <button id="remoteImageSave" class="primary">下载并保存配图</button>
+      <button id="remoteImageReview">查看并替换</button>
+      <button id="remoteImageStop" hidden>停止</button>
+    </section>
     <div class="page">
       <div id="editor" contenteditable="true" spellcheck="false"></div>
     </div>
@@ -151,6 +157,7 @@
 
   <dialog id="imageMetaDlg" aria-labelledby="imageMetaTitle">
     <h3 id="imageMetaTitle">图片信息</h3>
+    <p id="imagePixelSize" class="hint"></p>
     <p class="hint">替代文字不会显示在正文中，主要用于无障碍阅读和图片加载失败提示；图注才会显示在图片下方。</p>
     <div class="image-meta-field">
       <label for="imageAltInput">图片替代文字</label>
@@ -168,7 +175,7 @@
 
   <dialog id="importDlg" aria-labelledby="importTitle">
     <h3 id="importTitle">导入文章</h3>
-    <p class="hint">默认不会连接原文章的图片服务器。</p>
+    <p class="hint">保留配图位置和图注；未选择保存时，不访问图片服务器。</p>
     <button id="dlgFile" class="file-btn">选择本地文件（HTML / Markdown）…</button>
     <div class="dlg-format">
       <span>粘贴内容格式：</span>
@@ -177,8 +184,8 @@
     </div>
     <textarea id="importSrc" placeholder="把 HTML 源码或 Markdown 粘贴到这里…"></textarea>
     <label class="external-image-option">
-      <input id="keepExternalImages" type="checkbox" />
-      <span><strong>保留网络图片（不推荐）</strong><small>开启后浏览器会访问第三方图片地址，对方可能看到你的 IP；默认移除，可在导入后插入本地图片。</small></span>
+      <input id="saveExternalImages" type="checkbox" />
+      <span><strong>同时下载并保存配图</strong><small>下载、压缩并自动保留在原位置，失败图片可重试或原位换图。会访问图片来源；配置下载服务时，仅发送图片地址。</small></span>
     </label>
     <div class="dlg-actions">
       <button id="dlgCancel">取消</button>
@@ -186,18 +193,38 @@
     </div>
   </dialog>
 
+  <dialog id="remoteImageDlg" aria-labelledby="remoteImageTitle">
+    <h3 id="remoteImageTitle">待保存的配图</h3>
+    <p class="hint">成功保存的图片已在正文原位，无需重新插图。链接失效或下载失败的图片可在这里重试、换图。</p>
+    <div id="remoteImageList"></div>
+    <div class="dlg-actions"><button id="remoteImageClose">关闭</button></div>
+  </dialog>
+
   <dialog id="settingsDlg" aria-labelledby="settingsTitle">
     <h3 id="settingsTitle">设置</h3>
+    <div class="set-row">
+      <label for="setImagePreset">配图清晰度</label>
+      <select id="setImagePreset">
+        <option value="4k">4K 高画质 · 最大宽度 3840 px</option>
+        <option value="1080p">1080P · 最大宽度 1920 px</option>
+        <option value="original">保留原图 · 不缩放、不重压缩</option>
+        <option value="custom">自定义</option>
+      </select>
+    </div>
+    <p class="set-hint">默认采用 4K 高画质，保留原始比例。原图尺寸不足时不会强行放大，页面会提示不足 1080P 的图片。</p>
     <div class="set-row">
       <label for="setMaxWidth">图片最大宽度</label>
       <div><input type="number" id="setMaxWidth" min="200" max="4096" step="10" /> px</div>
     </div>
-    <p class="set-hint">插入的图片超过此宽度会等比缩小；越小体积越小。默认 1280。</p>
+    <p class="set-hint">超过此宽度才会等比缩小；默认 3840 px。原图模式不缩放。</p>
     <div class="set-row">
       <label for="setQuality">图片压缩质量</label>
       <div><input type="number" id="setQuality" min="40" max="100" step="5" /> %</div>
     </div>
-    <p class="set-hint">JPEG 压缩质量，越高越清晰、体积越大。默认 85。（排版主题在顶部工具栏右侧切换）</p>
+    <p class="set-hint">JPEG 默认质量 95%；高画质模式下 PNG 保留 PNG，避免文字和线条出现 JPEG 压缩痕迹。原图模式保留文件原始数据。</p>
+    <label for="setImageService">图片下载服务（可选）</label>
+    <input id="setImageService" class="service-input" type="url" placeholder="https://你的服务地址/api/image" />
+    <p class="set-hint">用于保存网页无法直接读取的外链图片。仅发送图片地址，正文留在本机；未配置时尝试直接下载。请使用你信任的服务。</p>
     <div class="dlg-actions">
       <button id="setCancel">取消</button>
       <button id="setSave" class="primary">保存</button>
@@ -216,7 +243,7 @@
     <section class="privacy-card">
       <strong>内容只保存在当前浏览器</strong>
       <p>工具没有账号和上传服务器。换设备、换浏览器或清理网站数据时，文档不会自动跟过去，请先导出完整备份。</p>
-      <p>导入文章时默认移除网络图片和远程资源；只有手动选择保留网络图片时，浏览器才会访问第三方图片地址。</p>
+      <p>导入文件或粘贴文章时，外链图片先保留为占位，远程样式和嵌入资源会被移除。选择保存配图后才会下载图片；成功图片会压缩并随文章保存在本机。</p>
     </section>
 
     <section class="help-section">
@@ -243,13 +270,14 @@
 
     <footer class="app-version">
       <span id="appVersion"></span>
-      <span>纯本地处理 · 零后端 · 零上传</span>
+      <span>文章保存在本机 · 按需下载配图</span>
       <a href="https://github.com/Arvin62/crosspost-composer/blob/main/LICENSE" target="_blank" rel="noreferrer">Apache-2.0 开源许可</a>
     </footer>
   </dialog>
 
   <input type="file" id="fileInput" accept="image/*" multiple hidden />
   <input type="file" id="replaceImageInput" accept="image/*" hidden />
+  <input type="file" id="remoteReplaceInput" accept="image/*" hidden />
   <input type="file" id="htmlInput" accept=".html,.htm,.md,.markdown,text/html,text/markdown" hidden />
   <input type="file" id="backupInput" accept=".json,application/json" hidden />
   <div id="toast"></div>

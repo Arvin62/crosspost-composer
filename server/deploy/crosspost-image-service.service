@@ -1,0 +1,25 @@
+[Unit]
+Description=Crosspost Composer image download service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/crosspost-image-service
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/etc/crosspost-image-service.env
+ExecStart=/usr/bin/env node /opt/crosspost-image-service/image-service.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=384M
+TasksMax=32
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

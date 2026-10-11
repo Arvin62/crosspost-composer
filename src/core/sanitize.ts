@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+import { IMAGE_PLACEHOLDER, REMOTE_SOURCE, REMOTE_ERROR } from './remote-image-state.ts';
 
 const FORBID_TAGS = [
   'style',
@@ -59,6 +60,7 @@ const LOADING_IMAGE_ATTRIBUTE = /\s+(?:srcset|loading|decoding|referrerpolicy|cr
 export interface ImportResourceReport {
   externalImagesRemoved: number;
   externalImagesKept: number;
+  externalImagesPending: number;
   invalidImagesRemoved: number;
   resourceStylesRemoved: number;
 }
@@ -70,6 +72,7 @@ export interface SanitizedImport {
 
 export interface ImportSanitizeOptions {
   allowExternalImages?: boolean;
+  preserveExternalImages?: boolean;
 }
 
 interface NeutralizedMarkup {
@@ -331,12 +334,12 @@ function neutralizeLoadingResources(source: string): NeutralizedMarkup {
   return { html, imageSources, styles };
 }
 
-function sanitizeMarkup(source: string, allowExternalImages: boolean): SanitizedImport {
+function sanitizeMarkup(source: string, allowExternalImages: boolean, preserveExternalImages = false, internal = false): SanitizedImport {
   const neutralized = neutralizeLoadingResources(source);
   const sanitized = DOMPurify.sanitize(neutralized.html, {
     USE_PROFILES: { html: true },
     FORBID_TAGS,
-    FORBID_ATTR,
+    FORBID_ATTR: internal ? FORBID_ATTR : [...FORBID_ATTR, REMOTE_SOURCE, REMOTE_ERROR],
     SANITIZE_NAMED_PROPS: true,
   });
   const template = document.createElement('template');
@@ -344,6 +347,7 @@ function sanitizeMarkup(source: string, allowExternalImages: boolean): Sanitized
   const report: ImportResourceReport = {
     externalImagesRemoved: 0,
     externalImagesKept: 0,
+    externalImagesPending: 0,
     invalidImagesRemoved: 0,
     resourceStylesRemoved: 0,
   };
@@ -361,8 +365,22 @@ function sanitizeMarkup(source: string, allowExternalImages: boolean): Sanitized
     const index = Number(image.dataset.cpcImportImage);
     const sourceValue = decodeAttributeEntities(neutralized.imageSources[index] ?? '').trim();
     image.removeAttribute('data-cpc-import-image');
+    if (internal && image.hasAttribute(REMOTE_SOURCE)) {
+      if (isExternalImageSource(image.getAttribute(REMOTE_SOURCE) ?? '')) {
+        image.setAttribute('src', IMAGE_PLACEHOLDER);
+        return;
+      }
+      image.removeAttribute(REMOTE_SOURCE);
+      image.removeAttribute(REMOTE_ERROR);
+    }
     if (isLocalImageSource(sourceValue)) {
       image.setAttribute('src', sourceValue);
+      return;
+    }
+    if (preserveExternalImages && isExternalImageSource(sourceValue)) {
+      image.setAttribute('src', IMAGE_PLACEHOLDER);
+      image.setAttribute(REMOTE_SOURCE, sourceValue);
+      report.externalImagesPending++;
       return;
     }
     if (allowExternalImages && isExternalImageSource(sourceValue)) {
@@ -382,11 +400,11 @@ function sanitizeMarkup(source: string, allowExternalImages: boolean): Sanitized
 }
 
 /**
- * 清洗编辑器内部或备份中的 HTML。已经由用户明确保留的外链图片继续存在，但会
- * 自动添加 no-referrer；脚本、远程 CSS、媒体、嵌入页面等主动资源始终移除。
+ * 清洗编辑器内部或备份中的 HTML。旧版保留的外链图片转为待保存占位，保留位置
+ * 与来源，不在恢复时自动联网；主动资源始终移除。
  */
 export function htmlToBody(source: string): string {
-  return sanitizeMarkup(source, true).html;
+  return sanitizeMarkup(source, true, true, true).html;
 }
 
 /** 导入外部文章时默认删除网络图片；只有用户明确选择后才保留。 */
@@ -394,5 +412,5 @@ export function sanitizeImportedHtml(
   source: string,
   options: ImportSanitizeOptions = {},
 ): SanitizedImport {
-  return sanitizeMarkup(source, options.allowExternalImages === true);
+  return sanitizeMarkup(source, options.allowExternalImages === true, options.preserveExternalImages === true);
 }

@@ -9,6 +9,7 @@ import {
   type SnapshotKind,
 } from './documents';
 import { DEFAULT_IMAGE_OPTIONS, type ImageOptions } from './image';
+import { validateImageService } from './remote-images';
 import { APP_VERSION, BACKUP_FORMAT, BACKUP_VERSION } from './app-info';
 
 export interface AppBackup {
@@ -18,7 +19,7 @@ export interface AppBackup {
   exportedAt: string;
   activeDocumentId: string;
   themeId: string;
-  settings: ImageOptions;
+  settings: ImageOptions & { imageService?: string };
   documents: ComposerDocument[];
   snapshots: DocumentSnapshot[];
 }
@@ -56,11 +57,15 @@ function timestamp(value: unknown, field: string): number {
   return value;
 }
 
-function normalizeSettings(value: unknown): ImageOptions {
+function normalizeSettings(value: unknown): ImageOptions & { imageService?: string } {
   if (!isRecord(value)) return { ...DEFAULT_IMAGE_OPTIONS };
   const maxWidth = Number(value.maxWidth);
   const quality = Number(value.quality);
+  let imageService = '';
+  try { if (typeof value.imageService === 'string') imageService = validateImageService(value.imageService); } catch { /* Ignore invalid service addresses in backups. */ }
   return {
+    imageService,
+    preserveOriginal: value.preserveOriginal === true,
     maxWidth:
       Number.isFinite(maxWidth) && maxWidth >= 200 && maxWidth <= 4096
         ? Math.round(maxWidth)

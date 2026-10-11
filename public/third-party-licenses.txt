@@ -5,7 +5,7 @@ The Apache License 2.0 for Crosspost Composer does not replace or restrict the
 licenses of these third-party components.
 
 ================================================================================
-DOMPurify 3.4.13
+DOMPurify 3.4.16
 Project: https://github.com/cure53/DOMPurify
 Selected license: Apache License 2.0
 ================================================================================
