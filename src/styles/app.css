@@ -601,6 +601,11 @@ dialog textarea:focus {
 #editor img[data-cpc-remote-src] { min-height: 100px; max-height: 220px; object-fit: contain; outline: 1px dashed #8fa3bf; }
 .remote-image-row { display: flex; gap: 8px; padding: 12px 0; border-bottom: 1px solid #d8dee8; align-items: center; }
 .remote-image-row > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.remote-image-row > a { flex-shrink: 0; font-size: 13px; white-space: nowrap; }
+@media (max-width: 640px) {
+  .remote-image-row { flex-wrap: wrap; }
+  .remote-image-row > div { flex: 1 0 100%; }
+}
 .remote-image-row p { font-size: 13px; margin: 6px 0; }
 #remoteImageList { max-height: 55vh; overflow: auto; }
 .service-input { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px; border: 1px solid #c4c9d2; border-radius: 6px; }

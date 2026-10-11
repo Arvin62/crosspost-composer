@@ -26,7 +26,7 @@ export function initRemoteImages(editor: HTMLElement, onChange: () => void, getO
       const status = document.createElement('p');
       status.textContent = image.getAttribute(REMOTE_ERROR) || '待下载并保存';
       const source = document.createElement('small');
-      // Do not expose signed query parameters or create a link that loads remote content.
+      // Show only the hostname; the original URL opens only on an explicit user click.
       try { source.textContent = new URL(image.getAttribute(REMOTE_SOURCE)!, location.href).hostname; } catch { source.textContent = '图片地址无效'; }
       description.append(title, status, source);
       const retry = document.createElement('button');
@@ -36,7 +36,17 @@ export function initRemoteImages(editor: HTMLElement, onChange: () => void, getO
       const replace = document.createElement('button');
       replace.textContent = '原位换图';
       replace.addEventListener('click', () => { replacing = image; replaceInput.click(); });
-      row.append(description, retry, replace);
+      const open = document.createElement('a');
+      open.textContent = '打开原图';
+      try {
+        const url = new URL(image.getAttribute(REMOTE_SOURCE)!, location.href);
+        if (['http:', 'https:'].includes(url.protocol) && !url.username && !url.password) {
+          open.href = url.href;
+          open.target = '_blank';
+          open.rel = 'noopener noreferrer';
+          row.append(description, open, retry, replace);
+        } else row.append(description, retry, replace);
+      } catch { row.append(description, retry, replace); }
       list.append(row);
     });
     if (!list.childElementCount) list.textContent = '全部配图已处理。';
@@ -77,7 +87,7 @@ export function initRemoteImages(editor: HTMLElement, onChange: () => void, getO
           if (controller !== run) return;
           const bytes = (value: number) => `${(value / 1024 / 1024).toFixed(1)} MB`;
           summary.textContent = received === undefined
-            ? `已保存 ${completed} / ${total} 张，正在处理后续配图…`
+            ? `已处理 ${completed} / ${total} 张，正在处理后续配图…`
             : `正在下载第 ${completed + 1} / ${total} 张：${bytes(received)}${imageBytes ? ` / ${bytes(imageBytes)}` : ''}。高清原图较大，请稍候。`;
         },
       });

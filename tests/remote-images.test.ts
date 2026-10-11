@@ -159,6 +159,7 @@ test('downloads enforce status, MIME, declared and streamed size limits and omit
     }
     globalThis.fetch = async (_url, options) => {
       assert.equal(options?.credentials, 'omit'); assert.equal(options?.referrerPolicy, 'no-referrer');
+      if (_url === 'https://images.example/photo') throw new TypeError('CORS');
       assert.equal(options?.method, 'POST'); assert.deepEqual(JSON.parse(String(options?.body)), { url: 'https://images.example/photo' });
       return new Response('image', { headers: { 'content-type': 'image/png' } });
     };
@@ -186,3 +187,79 @@ test('large image downloads report received bytes before the transfer completes'
   } finally { globalThis.fetch = previousFetch; }
 });
 
+
+test('a configured service does not prevent direct browser downloads', async () => {
+  const previousFetch = globalThis.fetch;
+  const calls: string[] = [];
+  try {
+    globalThis.fetch = async (url) => {
+      calls.push(String(url));
+      return new Response('direct', { headers: { 'content-type': 'image/jpeg' } });
+    };
+    const result = await downloadRemoteImage('https://new-source.example/image', 'https://service.example/api/image');
+    assert.equal(await result.text(), 'direct');
+    assert.deepEqual(calls, ['https://new-source.example/image']);
+  } finally { globalThis.fetch = previousFetch; }
+});
+
+test('direct source errors fall back to the service; size and cancellation never do', async () => {
+  const previousFetch = globalThis.fetch;
+  try {
+    for (const kind of ['html', 'http', 'cors']) {
+      let calls = 0;
+      globalThis.fetch = async () => {
+        if (++calls === 1) {
+          if (kind === 'cors') throw new TypeError('CORS');
+          return kind === 'html' ? new Response('challenge', { headers: { 'content-type': 'text/html' } }) : new Response('forbidden', { status: 403 });
+        }
+        return new Response('image', { headers: { 'content-type': 'image/png' } });
+      };
+      await downloadRemoteImage('https://new.example/image', 'https://service.example/api/image');
+      assert.equal(calls, 2);
+    }
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls++;
+      return new Response('image', { headers: { 'content-type': 'image/png', 'content-length': String(MAX_REMOTE_BYTES + 1) } });
+    };
+    await assert.rejects(downloadRemoteImage('https://new.example/image', 'https://service.example/api/image'), /48 MB/);
+    assert.equal(calls, 1);
+    const controller = new AbortController();
+    calls = 0;
+    globalThis.fetch = async () => { calls++; controller.abort(); throw new DOMException('Aborted', 'AbortError'); };
+    await assert.rejects(downloadRemoteImage('https://new.example/image', 'https://service.example/api/image', controller.signal), /已停止/);
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = previousFetch; }
+});
+
+test('service access challenges have actionable errors rather than connection failure', async () => {
+  const previousFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (url) => {
+      if (url === 'https://new.example/image') throw new TypeError('CORS');
+      return new Response(JSON.stringify({ code: 'SOURCE_ACCESS_DENIED', error: 'upstream text' }), {
+        status: 502, headers: { 'content-type': 'application/json' },
+      });
+    };
+    await assert.rejects(downloadRemoteImage('https://new.example/image', 'https://service.example/api/image'), /网站验证.*打开原图/);
+  } finally { globalThis.fetch = previousFetch; }
+});
+
+test('a stalled direct header request automatically falls back within eight seconds', async (t) => {
+  const previousFetch = globalThis.fetch;
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const calls: string[] = [];
+  try {
+    globalThis.fetch = async (url, options) => {
+      calls.push(String(url));
+      if (calls.length === 1) return new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+      });
+      return new Response('image', { headers: { 'content-type': 'image/png' } });
+    };
+    const result = downloadRemoteImage('https://slow.example/photo', 'https://service.example/api/image');
+    t.mock.timers.tick(8000);
+    assert.equal((await result).type, 'image/png');
+    assert.deepEqual(calls, ['https://slow.example/photo', 'https://service.example/api/image']);
+  } finally { globalThis.fetch = previousFetch; t.mock.timers.reset(); }
+});

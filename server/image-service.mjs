@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 export const MAX_IMAGE_BYTES = 48 * 1024 * 1024;
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/bmp', 'image/x-icon']);
 export class ImageServiceError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, code) { super(message); this.status = status; this.code = code; }
 }
 
 /** Reject local, private, link-local, documentation, multicast, and transition networks. */
@@ -55,7 +55,7 @@ export async function resolveImageURL(source, { allowedHosts = [], resolve = loo
   return { url, address: addresses[0] };
 }
 
-function requestPinned(url, address, signal, maxBytes) {
+function requestPinned(url, address, signal, maxBytes, sendOriginReferer = true) {
   return new Promise((resolve, reject) => {
     const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
     const req = send(url, {
@@ -65,15 +65,16 @@ function requestPinned(url, address, signal, maxBytes) {
         if (options?.all) callback(null, [address]);
         else callback(null, address.address, address.family);
       },
-      headers: { Accept: 'image/*', 'Accept-Encoding': 'identity', 'User-Agent': 'CrosspostComposer-ImageService/1.0' },
+      // A public origin hint helps image hosts with hotlink checks. Never forward the user's article URL or cookies.
+      headers: { Accept: 'image/*', 'Accept-Encoding': 'identity', 'User-Agent': 'CrosspostComposer-ImageService/1.0', ...(sendOriginReferer ? { Referer: `${url.origin}/` } : {}) },
     }, (res) => {
       const status = res.statusCode ?? 502;
       if ([301, 302, 303, 307, 308].includes(status)) {
         res.destroy(); resolve({ redirect: res.headers.location }); return;
       }
-      if (status !== 200) { res.destroy(); reject(new ImageServiceError(status === 404 ? 404 : 502, 'Image source returned an error')); return; }
+      if (status !== 200) { res.destroy(); reject(new ImageServiceError(status === 404 ? 404 : 502, 'Image source returned an error', [401, 403].includes(status) ? 'SOURCE_ACCESS_DENIED' : 'SOURCE_HTTP_ERROR')); return; }
       const type = (res.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase();
-      if (!IMAGE_TYPES.has(type)) { res.destroy(); reject(new ImageServiceError(415, 'Unsupported image content type')); return; }
+      if (!IMAGE_TYPES.has(type)) { res.destroy(); reject(new ImageServiceError(415, 'Unsupported image content type', 'SOURCE_NOT_IMAGE')); return; }
       if (Number(res.headers['content-length']) > maxBytes) { res.destroy(); reject(new ImageServiceError(413, 'Image is too large')); return; }
       const chunks = [];
       let size = 0;
@@ -95,31 +96,53 @@ function requestPinned(url, address, signal, maxBytes) {
 
 export async function downloadImage(source, options = {}) {
   const signal = options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000);
-  let current = source;
-  for (let count = 0; count <= 4; count++) {
-    if (signal.aborted) throw new ImageServiceError(504, 'Image source timed out');
-    const { url, address } = await resolveImageURL(current, { ...options, signal });
-    const result = await (options.transport ?? requestPinned)(url, address, signal, options.maxBytes ?? MAX_IMAGE_BYTES);
-    if (!('redirect' in result)) return result;
-    if (!result.redirect) throw new ImageServiceError(502, 'Invalid image redirect');
-    current = new URL(result.redirect, url).href;
-    // Each redirect is independently checked for host permission and public DNS.
+  try {
+    return await downloadAttempt(source, options, signal, true);
+  } catch (error) {
+    if (signal.aborted || !['SOURCE_ACCESS_DENIED', 'SOURCE_NOT_IMAGE', 'SOURCE_REDIRECT_LOOP'].includes(error.code)) throw error;
+    // Some sources require an origin hint, others explicitly reject it. One alternate attempt.
+    return downloadAttempt(source, options, signal, false);
   }
-  throw new ImageServiceError(502, 'Too many image redirects');
 }
 
-export function createImageService({ origins, allowedHosts, download = downloadImage, maxActive = 2 } = {}) {
-  if (!origins?.length || !allowedHosts?.length) throw new Error('Explicit allowed origins and image hosts are required');
+async function downloadAttempt(source, options, signal, sendOriginReferer) {
+  let current = source;
+  const visited = new Set();
+  let cacheRetry = false;
+  for (let count = 0; count <= 4 + Number(cacheRetry); count++) {
+    if (signal.aborted) throw new ImageServiceError(504, 'Image source timed out');
+    const { url, address } = await resolveImageURL(current, { ...options, signal });
+    visited.add(url.href);
+    const result = await (options.transport ?? requestPinned)(url, address, signal, options.maxBytes ?? MAX_IMAGE_BYTES, sendOriginReferer);
+    if (!('redirect' in result)) return result;
+    if (!result.redirect) throw new ImageServiceError(502, 'Invalid image redirect');
+    const next = new URL(result.redirect, url);
+    if (visited.has(next.href)) {
+      if (cacheRetry) break;
+      // Some CDNs cache a redirect back to the same resource. One fresh request only.
+      next.searchParams.set('_crosspost_retry', String(Date.now()));
+      cacheRetry = true;
+    }
+    current = next.href;
+    // All redirects and the bounded cache retry are independently checked and DNS-pinned.
+  }
+  throw new ImageServiceError(502, 'Too many image redirects', 'SOURCE_REDIRECT_LOOP');
+}
+
+export function createImageService({ origins, allowedHosts, hostPolicy = 'allowlist', download = downloadImage, maxActive = 2 } = {}) {
+  if (!origins?.length || !['allowlist', 'public'].includes(hostPolicy) || (hostPolicy === 'allowlist' && !allowedHosts?.length)) {
+    throw new Error('Explicit allowed origins and image hosts or public host policy are required');
+  }
   let active = 0;
   const rates = new Map();
   const server = createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Vary', 'Origin');
-    const fail = (status, message) => {
+    const fail = (status, message, code) => {
       if (res.destroyed || res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: message }));
+      res.end(JSON.stringify({ error: message, ...(code ? { code } : {}) }));
     };
     if (req.url === '/health' && req.method === 'GET') { res.end('ok'); return; }
     if (req.url !== '/api/image') { fail(404, 'Not found'); return; }
@@ -157,12 +180,12 @@ export function createImageService({ origins, allowedHosts, download = downloadI
       let parsed;
       try { parsed = JSON.parse(body); } catch { throw new ImageServiceError(400, 'Invalid JSON'); }
       if (typeof parsed?.url !== 'string' || parsed.url.length > 4096) throw new ImageServiceError(400, 'An image URL is required');
-      const result = await download(parsed.url, { allowedHosts, signal: controller.signal });
+      const result = await download(parsed.url, { allowedHosts: hostPolicy === 'public' ? [] : allowedHosts, signal: controller.signal });
       if (controller.signal.aborted || res.destroyed) return;
       res.writeHead(200, { 'Content-Type': result.type, 'Content-Length': result.bytes.length });
       res.end(result.bytes);
     } catch (error) {
-      fail(error instanceof ImageServiceError ? error.status : controller.signal.aborted ? 504 : 502, error instanceof ImageServiceError ? error.message : 'Image download failed');
+      fail(error instanceof ImageServiceError ? error.status : controller.signal.aborted ? 504 : 502, error instanceof ImageServiceError ? error.message : 'Image download failed', error instanceof ImageServiceError ? error.code : undefined);
     } finally {
       controller.signal.removeEventListener('abort', readAbort);
       clearTimeout(deadline); active--;
@@ -177,7 +200,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const csv = (name) => (process.env[name] ?? '').split(',').map((value) => value.trim()).filter(Boolean);
   const origins = csv('IMAGE_ALLOWED_ORIGINS');
   const allowedHosts = csv('IMAGE_ALLOWED_HOSTS').map((host) => host.toLowerCase());
-  const server = createImageService({ origins, allowedHosts });
+  const server = createImageService({ origins, allowedHosts, hostPolicy: process.env.IMAGE_HOST_POLICY ?? 'allowlist' });
   const host = process.env.IMAGE_HOST ?? '127.0.0.1';
   const port = Number(process.env.IMAGE_PORT ?? '8787');
   server.listen(port, host, () => console.log(`Image download service listening on ${host}:${port}`));
