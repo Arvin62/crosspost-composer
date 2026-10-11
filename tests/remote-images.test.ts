@@ -263,3 +263,120 @@ test('a stalled direct header request automatically falls back within eight seco
     assert.deepEqual(calls, ['https://slow.example/photo', 'https://service.example/api/image']);
   } finally { globalThis.fetch = previousFetch; t.mock.timers.reset(); }
 });
+
+test('two downloads overlap while a slow first image never holds later images or changes their positions', async () => {
+  const root = editorWith('<figure><img src="https://parallel.example/a" alt="A" style="width:70%"><figcaption>A caption</figcaption></figure>' +
+    '<figure><img src="https://parallel.example/b" alt="B"><figcaption>B caption</figcaption></figure><img src="https://parallel.example/c" alt="C">');
+  const releases = new Map<string, () => void>();
+  const calls: string[] = [];
+  let active = 0;
+  let peak = 0;
+  const result = saveRemoteImages(root, { imageOptions, service: '',
+    download: (source) => new Promise((resolve) => {
+      calls.push(source); active++; peak = Math.max(peak, active);
+      releases.set(source, () => { active--; resolve(new Blob([source.slice(-1)], { type: 'image/png' })); });
+    }),
+    convert: async (file) => `data:image/png;base64,${Buffer.from(await file.text()).toString('base64')}` });
+  assert.equal(calls.length, 2);
+  releases.get('https://parallel.example/b')!();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.length, 3);
+  assert.equal(root.querySelector('img[alt="B"]')?.hasAttribute(REMOTE_SOURCE), false);
+  assert.equal(root.querySelector('img[alt="A"]')?.hasAttribute(REMOTE_SOURCE), true);
+  releases.get('https://parallel.example/c')!();
+  releases.get('https://parallel.example/a')!();
+  assert.deepEqual(await result, { saved: 3, failed: 0, cancelled: false });
+  assert.equal(peak, 2);
+  assert.deepEqual([...root.querySelectorAll('img')].map((image) => image.alt), ['A', 'B', 'C']);
+  assert.equal(root.querySelector('img')?.style.width, '70%');
+  assert.equal(root.querySelector('figcaption')?.textContent, 'A caption');
+});
+
+test('parallel downloads still decode only one image at a time and share duplicate failures', async () => {
+  const root = editorWith('<img src="https://decode.example/a"><img src="https://decode.example/b">');
+  let active = 0;
+  let peak = 0;
+  await saveRemoteImages(root, { imageOptions, service: '',
+    download: async () => new Blob(['image'], { type: 'image/png' }),
+    convert: async () => { active++; peak = Math.max(peak, active); await new Promise((resolve) => setImmediate(resolve)); active--; return data; } });
+  assert.equal(peak, 1);
+  const duplicates = editorWith(sample + sample + sample);
+  let downloads = 0;
+  const result = await saveRemoteImages(duplicates, { imageOptions, service: '',
+    download: async () => { downloads++; throw new Error('source refused'); }, convert: async () => data });
+  assert.equal(downloads, 1);
+  assert.equal(result.failed, 3);
+});
+
+test('stop cancels both active requests without starting queued images', async () => {
+  const root = editorWith('<img src="https://stop.example/a"><img src="https://stop.example/b"><img src="https://stop.example/c">');
+  const controller = new AbortController();
+  let calls = 0;
+  const task = saveRemoteImages(root, { imageOptions, service: '', signal: controller.signal,
+    download: (_url, _service, signal) => new Promise((_resolve, reject) => {
+      calls++;
+      signal!.addEventListener('abort', () => reject(new DOMException('stop', 'AbortError')), { once: true });
+    }), convert: async () => data });
+  assert.equal(calls, 2);
+  controller.abort();
+  assert.deepEqual(await task, { saved: 0, failed: 0, cancelled: true });
+  assert.equal(calls, 2);
+  assert.equal(pendingImages(root).length, 3);
+});
+
+test('recent source failures skip repeated browser probes but retain browser fallback if the service fails', async () => {
+  const previousFetch = globalThis.fetch;
+  const calls: string[] = [];
+  const endpoint = 'https://routing-service.example/api/image';
+  const blob = () => new Response('image', { headers: { 'content-type': 'image/jpeg' } });
+  try {
+    globalThis.fetch = async (url) => { calls.push(String(url)); if (url === endpoint) return blob(); throw new TypeError('CORS'); };
+    await downloadRemoteImage('https://remember-origin.example/a', endpoint);
+    await downloadRemoteImage('https://remember-origin.example/b', endpoint);
+    assert.deepEqual(calls, ['https://remember-origin.example/a', endpoint, endpoint]);
+    calls.length = 0;
+    globalThis.fetch = async (url) => { calls.push(String(url)); return url === endpoint ? new Response('unavailable', { status: 502 }) : blob(); };
+    await downloadRemoteImage('https://remember-origin.example/c', endpoint);
+    assert.deepEqual(calls, [endpoint, 'https://remember-origin.example/c']);
+    calls.length = 0;
+    await downloadRemoteImage('https://remember-origin.example/d', endpoint);
+    assert.deepEqual(calls, ['https://remember-origin.example/d']);
+  } finally { globalThis.fetch = previousFetch; }
+});
+
+test('origin route preferences expire and never permanently suppress browser reads', async (t) => {
+  const previousFetch = globalThis.fetch;
+  const calls: string[] = [];
+  const endpoint = 'https://expiry-service.example/api/image';
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  try {
+    globalThis.fetch = async (url) => {
+      calls.push(String(url));
+      if (url !== endpoint) throw new TypeError('CORS');
+      return new Response('image', { headers: { 'content-type': 'image/png' } });
+    };
+    await downloadRemoteImage('https://expiring-origin.example/a', endpoint);
+    calls.length = 0;
+    t.mock.timers.tick(5 * 60_000 + 1);
+    await downloadRemoteImage('https://expiring-origin.example/b', endpoint);
+    assert.deepEqual(calls, ['https://expiring-origin.example/b', endpoint]);
+  } finally { globalThis.fetch = previousFetch; t.mock.timers.reset(); }
+});
+
+test('duplicate slow images occupy one download slot and leave the second slot for a different source', async () => {
+  const root = editorWith(sample + sample + '<img src="https://other-source.example/fast">');
+  let release!: () => void;
+  const calls: string[] = [];
+  const task = saveRemoteImages(root, { imageOptions, service: '', convert: async () => data,
+    download: (source) => {
+      calls.push(source);
+      if (source.includes('other-source')) return Promise.resolve(new Blob(['fast'], { type: 'image/png' }));
+      return new Promise((resolve) => { release = () => resolve(new Blob(['slow'], { type: 'image/png' })); });
+    } });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.length, 2);
+  assert.equal(root.querySelector('img:last-child')?.hasAttribute(REMOTE_SOURCE), false);
+  release();
+  assert.equal((await task).saved, 3);
+  assert.equal(calls.length, 2);
+});

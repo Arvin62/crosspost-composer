@@ -34,16 +34,21 @@
   </header>
 
   <main>
-    <section id="remoteImageBanner" class="remote-image-banner" hidden aria-label="文章配图保存">
-      <div><strong id="remoteImageSummary" role="status" aria-live="polite"></strong><small>点击保存会访问图片来源；配置下载服务时，仅发送图片地址。图片会随文章保存在当前浏览器。</small></div>
-      <button id="remoteImageSave" class="primary">下载并保存配图</button>
-      <button id="remoteImageReview">查看并替换</button>
-      <button id="remoteImageStop" hidden>停止</button>
-    </section>
     <div class="page">
       <div id="editor" contenteditable="true" spellcheck="false"></div>
     </div>
   </main>
+
+  <section id="remoteImageBanner" class="image-status-bar" hidden aria-label="配图状态">
+    <button id="remoteImageReview" class="image-status-entry" aria-haspopup="dialog" aria-controls="remoteImageDlg" title="查看配图详情与替换">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></svg>
+      <span>配图</span><span id="remoteImageBadge" class="image-status-badge" hidden></span>
+      <span class="image-status-chevron" aria-hidden="true">⌃</span>
+    </button>
+    <span id="remoteImageSummary" class="image-status-summary" role="status" aria-live="polite" aria-atomic="true"></span>
+    <button id="remoteImageSave" class="primary">保存配图</button>
+    <button id="remoteImageStop" hidden>停止</button>
+  </section>
 
   <aside id="navigatorPanel" hidden aria-label="文档导航与查找替换">
     <div class="navigator-head">
@@ -194,8 +199,9 @@
   </dialog>
 
   <dialog id="remoteImageDlg" aria-labelledby="remoteImageTitle">
-    <h3 id="remoteImageTitle">待保存的配图</h3>
-    <p class="hint">成功保存的图片已在正文原位，无需重新插图。链接失效或下载失败的图片可在这里重试、换图。</p>
+    <h3 id="remoteImageTitle">配图详情</h3>
+    <p id="remoteImageOverview" class="hint"></p>
+    <p id="remoteImagePrivacy" class="hint" hidden>点击保存会访问图片来源；通过下载服务时仅发送图片地址。图片随文章保存在当前浏览器。</p>
     <div id="remoteImageList"></div>
     <div class="dlg-actions"><button id="remoteImageClose">关闭</button></div>
   </dialog>

@@ -6,6 +6,9 @@ export const MAX_REMOTE_BYTES = 48 * 1024 * 1024;
 const TIMEOUT_MS = 600_000;
 const DIRECT_HEADERS_MS = 8_000;
 class ImageSizeError extends Error {}
+// Keep only a short-lived origin preference, never image URLs, signed parameters or image bytes.
+const serviceOrigins = new Map<string, number>();
+const ORIGIN_PREFERENCE_MS = 5 * 60_000;
 type DownloadProgress = (received: number, total: number | null) => void;
 
 export function validateImageService(value: string): string {
@@ -88,29 +91,56 @@ export async function downloadRemoteImage(source: string, service: string, signa
   const timeout = AbortSignal.timeout(TIMEOUT_MS);
   const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const endpoint = validateImageService(service);
-  try {
+  let directFailed = false;
+  const direct = async () => {
     requestSignal.throwIfAborted();
-    // Prefer the reader's network and avoid relaying images that already allow CORS.
-    // Bound only the wait for direct headers; large image bodies retain the full deadline.
-    const directController = new AbortController();
-    const directSignal = AbortSignal.any([requestSignal, directController.signal]);
-    const timer = setTimeout(() => directController.abort(), DIRECT_HEADERS_MS);
+    const controller = new AbortController();
+    const directSignal = AbortSignal.any([requestSignal, controller.signal]);
+    const timer = setTimeout(() => controller.abort(), DIRECT_HEADERS_MS);
     try {
       let response: Response;
       try {
         response = await fetch(url.href, { credentials: 'omit', referrerPolicy: 'no-referrer', signal: directSignal });
       } finally { clearTimeout(timer); }
-      return await responseImage(response, progress);
+      const blob = await responseImage(response, progress);
+      serviceOrigins.delete(url.origin);
+      return blob;
     } catch (error) {
-      if (requestSignal.aborted || error instanceof ImageSizeError || !endpoint) throw error;
-      progress?.(0, null);
+      directFailed = error instanceof TypeError || controller.signal.aborted;
+      throw error;
     } finally { clearTimeout(timer); }
+  };
+  const relay = async () => {
     requestSignal.throwIfAborted();
     const response = await fetch(endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: url.href }), credentials: 'omit', referrerPolicy: 'no-referrer', signal: requestSignal,
     });
-    return await responseImage(response, progress, true);
+    const blob = await responseImage(response, progress, true);
+    if (directFailed) {
+      if (serviceOrigins.size >= 100) serviceOrigins.delete(serviceOrigins.keys().next().value!);
+      serviceOrigins.set(url.origin, Date.now() + ORIGIN_PREFERENCE_MS);
+    }
+    return blob;
+  };
+  const canFallback = (error: unknown) => !requestSignal.aborted && !(error instanceof ImageSizeError);
+  try {
+    if (endpoint && (serviceOrigins.get(url.origin) ?? 0) > Date.now()) {
+      // Avoid repeating known CORS/network waits. Always try the browser if the relay now fails.
+      try { return await relay(); }
+      catch (serviceError) {
+        if (!canFallback(serviceError)) throw serviceError;
+        serviceOrigins.delete(url.origin);
+        progress?.(0, null);
+        try { return await direct(); } catch { throw serviceError; }
+      }
+    }
+    try { return await direct(); }
+    catch (error) {
+      if (!endpoint || !canFallback(error)) throw error;
+      progress?.(0, null);
+      return await relay();
+    }
   } catch (error) {
     if (requestSignal.aborted) throw new Error(signal?.aborted ? '已停止，可重试' : '下载超时，请重试');
     if (error instanceof TypeError) throw new Error(endpoint
@@ -128,48 +158,70 @@ export interface RemoteBatchOptions {
   images?: HTMLImageElement[];
   download?: typeof downloadRemoteImage;
   convert?: typeof fileToDataURL;
-  onProgress?: (completed: number, total: number, received?: number, imageBytes?: number | null) => void;
+  onProgress?: (completed: number, total: number, received?: number, imageBytes?: number | null, imageNumber?: number) => void;
   onChange?: () => void;
 }
 
-/** Process sequentially to keep high-resolution originals from exhausting memory. */
+/** Overlap up to two downloads, but decode/resize one image at a time. */
 export async function saveRemoteImages(root: HTMLElement, options: RemoteBatchOptions): Promise<{ saved: number; failed: number; cancelled: boolean }> {
   const images = options.images ?? pendingImages(root);
-  const cache = new Map<string, string>();
+  const groups = new Map<string, Array<{ image: HTMLImageElement; preview: string | null; index: number }>>();
+  images.forEach((image, index) => {
+    const source = image.getAttribute(REMOTE_SOURCE);
+    if (!source || !root.contains(image)) return;
+    const entries = groups.get(source) ?? [];
+    entries.push({ image, preview: image.getAttribute('src'), index });
+    groups.set(source, entries);
+  });
+  const jobs = [...groups.entries()];
   let saved = 0;
   let failed = 0;
   let completed = 0;
-  for (const image of images) {
-    if (options.signal?.aborted) break;
-    const source = image.getAttribute(REMOTE_SOURCE);
-    if (!source || !root.contains(image)) continue;
-    const originalPreview = image.getAttribute('src');
-    image.removeAttribute(REMOTE_ERROR);
-    try {
-      let data = cache.get(source);
-      if (!data) {
+  let next = 0;
+  let conversion: Promise<unknown> = Promise.resolve();
+  const convert = (blob: Blob): Promise<string> => {
+    const task = conversion.then(() => {
+      options.signal?.throwIfAborted();
+      return (options.convert ?? fileToDataURL)(new File([blob], 'remote-image', { type: blob.type }), options.imageOptions);
+    });
+    // A corrupt image must not prevent subsequent images from being processed.
+    conversion = task.catch(() => {});
+    return task;
+  };
+  async function worker(): Promise<void> {
+    while (next < jobs.length && !options.signal?.aborted) {
+      const [source, entries] = jobs[next++];
+      const current = ({ image, preview }: typeof entries[number]) => root.contains(image) &&
+        image.getAttribute(REMOTE_SOURCE) === source && image.getAttribute('src') === preview;
+      const live = entries.filter(current);
+      if (!live.length) continue;
+      live.forEach(({ image }) => image.removeAttribute(REMOTE_ERROR));
+      let data: string | undefined;
+      let error: unknown;
+      try {
         const blob = await (options.download ?? downloadRemoteImage)(source, options.service, options.signal,
-          (received, imageBytes) => options.onProgress?.(completed, images.length, received, imageBytes));
-        if (options.signal?.aborted) break;
-        data = await (options.convert ?? fileToDataURL)(new File([blob], 'remote-image', { type: blob.type }), options.imageOptions);
-        cache.set(source, data);
-      }
-      if (options.signal?.aborted) break;
-      // A user may replace/delete an image or switch documents while the request runs.
-      if (!root.contains(image) || image.getAttribute(REMOTE_SOURCE) !== source || image.getAttribute('src') !== originalPreview) continue;
-      image.src = data;
-      clearRemoteState(image);
-      saved++;
-      options.onChange?.();
-    } catch (error) {
-      if (options.signal?.aborted) break;
-      if (root.contains(image) && image.getAttribute(REMOTE_SOURCE) === source && image.getAttribute('src') === originalPreview) {
-        image.setAttribute(REMOTE_ERROR, error instanceof Error ? error.message : '保存失败，请重试');
-        failed++;
-        options.onChange?.();
+          (received, imageBytes) => options.onProgress?.(completed, images.length, received, imageBytes, live[0].index + 1));
+        options.signal?.throwIfAborted();
+        data = await convert(blob);
+      } catch (caught) { error = caught; }
+      // Duplicate images share one job, so they do not occupy both download slots.
+      for (const entry of live) {
+        if (options.signal?.aborted) return;
+        if (current(entry)) {
+          if (data !== undefined) {
+            entry.image.src = data;
+            clearRemoteState(entry.image);
+            saved++;
+          } else {
+            entry.image.setAttribute(REMOTE_ERROR, error instanceof Error ? error.message : '保存失败，请重试');
+            failed++;
+          }
+          options.onChange?.();
+        }
+        options.onProgress?.(++completed, images.length);
       }
     }
-    options.onProgress?.(++completed, images.length);
   }
+  await Promise.all(Array.from({ length: Math.min(2, jobs.length) }, () => worker()));
   return { saved, failed, cancelled: options.signal?.aborted ?? false };
 }
