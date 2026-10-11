@@ -1,6 +1,6 @@
-import { htmlToBody } from './sanitize';
-import { inlineStyles } from './inline-styles';
-import { dataUrlByteSize, formatBytes } from './bytes';
+import { htmlToBody } from './sanitize.ts';
+import { inlineStyles } from './inline-styles.ts';
+import { dataUrlByteSize, formatBytes } from './bytes.ts';
 import type { Theme } from '../themes/types';
 
 export type PlatformId = 'wechat' | 'content' | 'zhihu' | 'generic';
@@ -137,6 +137,9 @@ function analyze(root: HTMLElement, stats: PlatformStats, platform: PlatformId):
       message: `${invalidSources} 张图片不是 data:image 或 http(s) 地址，平台无法读取。`,
     });
   }
+
+  const pending = root.querySelectorAll('img[data-cpc-remote-src]').length;
+  if (pending) issues.push({ severity: 'error', message: `${pending} 张配图尚未保存。请先下载保存、原位换图或删除，避免把占位图复制到平台。` });
 
   if (platform === 'wechat') {
     if (stats.externalImages) {

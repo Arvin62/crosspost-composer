@@ -2,6 +2,7 @@ import { fileToDataURL, rotateDataURL, type ImageOptions } from '../core/image';
 import type { ImageCropper } from './image-cropper';
 import type { ImageMetadataDialog } from './image-metadata';
 import { toast } from './toast';
+import { clearRemoteState, REMOTE_SOURCE } from '../core/remote-image-state';
 
 export interface ImageToolbar {
   deselect(): void;
@@ -91,7 +92,10 @@ export function initImageToolbar(
     const current = selected;
     toast('正在替换图片…', 0);
     try {
-      current.src = await fileToDataURL(file, getOptions());
+      const data = await fileToDataURL(file, getOptions());
+      if (!editor.contains(current)) return;
+      current.src = data;
+      clearRemoteState(current);
       current.alt = current.alt || file.name.replace(/\.[^.]+$/, '');
       select(current);
       onChange();
@@ -109,6 +113,10 @@ export function initImageToolbar(
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
     if (!button || !selected) return;
     const current = selected;
+    if (current.hasAttribute(REMOTE_SOURCE) && (button.id === 'imgCrop' || button.id === 'imgRotate')) {
+      toast('请先保存配图或原位换图，再裁剪、旋转');
+      return;
+    }
 
     if (button.id === 'imgDel') {
       const wrapper = wrapperOf(current);
@@ -155,6 +163,7 @@ export function initImageToolbar(
         {
           alt: current.alt,
           caption: existingCaption?.textContent ?? '',
+          dimensions: current.hasAttribute(REMOTE_SOURCE) ? '配图待保存，暂未读取原图尺寸' : `当前图片：${current.naturalWidth} × ${current.naturalHeight} px`,
         },
         button.id === 'imgAlt' ? 'alt' : 'caption',
       );

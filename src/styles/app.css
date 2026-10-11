@@ -582,6 +582,28 @@ dialog textarea:focus {
   gap: 5px;
   cursor: pointer;
 }
+.remote-image-banner {
+  max-width: 920px;
+  margin: 12px auto;
+  padding: 14px;
+  background: #eef4ff;
+  color: #26354d;
+  border: 1px solid #c4d6f5;
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.remote-image-banner > div { flex: 1 1 320px; }
+.remote-image-banner strong, .remote-image-banner small { display: block; }
+.remote-image-banner small { margin-top: 6px; line-height: 1.5; }
+#editor img[data-cpc-remote-src] { min-height: 100px; max-height: 220px; object-fit: contain; outline: 1px dashed #8fa3bf; }
+.remote-image-row { display: flex; gap: 8px; padding: 12px 0; border-bottom: 1px solid #d8dee8; align-items: center; }
+.remote-image-row > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.remote-image-row p { font-size: 13px; margin: 6px 0; }
+#remoteImageList { max-height: 55vh; overflow: auto; }
+.service-input { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px; border: 1px solid #c4c9d2; border-radius: 6px; }
 .external-image-option {
   display: flex;
   align-items: flex-start;

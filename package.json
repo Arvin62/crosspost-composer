@@ -12,10 +12,11 @@
     "build": "vite build && node scripts/copy-license-notices.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts tests/*.test.mjs",
     "verify": "npm test && npm run typecheck && npm run build",
     "audit:ci": "npm audit --audit-level=moderate",
-    "security:secrets": "node scripts/check-repository-secrets.mjs"
+    "security:secrets": "node scripts/check-repository-secrets.mjs",
+    "image-service": "node server/image-service.mjs"
   },
   "devDependencies": {
     "@types/jsdom": "^27.0.0",
@@ -24,7 +25,7 @@
     "vite": "^8.1.5"
   },
   "dependencies": {
-    "dompurify": "^3.4.13",
+    "dompurify": "^3.4.16",
     "marked": "^18.0.7"
   }
 }

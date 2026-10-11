@@ -1,6 +1,7 @@
 export interface ImageMetadata {
   alt: string;
   caption: string;
+  dimensions?: string;
 }
 
 export interface ImageMetadataDialog {
@@ -39,6 +40,7 @@ export function initImageMetadataDialog(): ImageMetadataDialog {
       if (resolver) finish(null);
       altInput.value = initial.alt;
       captionInput.value = initial.caption;
+      document.querySelector<HTMLElement>('#imagePixelSize')!.textContent = initial.dimensions || '图片尺寸加载中';
       dlg.showModal();
       const target = focus === 'caption' ? captionInput : altInput;
       requestAnimationFrame(() => {

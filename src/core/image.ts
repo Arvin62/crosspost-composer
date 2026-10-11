@@ -8,11 +8,14 @@ export interface ImageOptions {
   maxWidth: number;
   /** JPEG 压缩质量，0~1。 */
   quality: number;
+  /** Keep the original file bytes without resizing or recompression. */
+  preserveOriginal?: boolean;
 }
 
 export const DEFAULT_IMAGE_OPTIONS: ImageOptions = {
-  maxWidth: 1280,
-  quality: 0.85,
+  maxWidth: 3840,
+  quality: 0.95,
+  preserveOriginal: false,
 };
 
 function readAsDataURL(file: File): Promise<string> {
@@ -28,8 +31,16 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const im = new Image();
-    im.onload = () => resolve(im);
+    const timer = setTimeout(() => { URL.revokeObjectURL(url); reject(new Error('图片解码超时')); }, 20_000);
+    im.onload = () => {
+      clearTimeout(timer);
+      if (im.naturalWidth * im.naturalHeight > 100_000_000) {
+        URL.revokeObjectURL(url);
+        reject(new Error('图片像素过大，请压缩后替换'));
+      } else resolve(im);
+    };
     im.onerror = () => {
+      clearTimeout(timer);
       URL.revokeObjectURL(url);
       reject(new Error('图片解码失败'));
     };
@@ -63,24 +74,29 @@ function canvasDataURL(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('浏览器不支持 Canvas');
   const sourcePrefersPNG = /^data:image\/(?:png|gif|svg\+xml)/i.test(source);
-  const keepPNG = sourcePrefersPNG && canvasHasAlpha(ctx, canvas.width, canvas.height);
+  const keepPNG = sourcePrefersPNG && (quality >= 0.9 || canvasHasAlpha(ctx, canvas.width, canvas.height));
   return keepPNG ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', quality);
 }
 
 /**
  * 把图片文件转成 data URL。
  * - GIF / SVG 原样保留（动图不能走 canvas，会丢帧）。
- * - 其余格式按 maxWidth 等比缩放；含透明像素的 PNG 保留 PNG，否则转 JPEG 减小体积。
+ * - 原图模式保留文件数据；其余格式按 maxWidth 等比缩放，绝不放大小图。
+ * - 高画质 PNG 保持 PNG；达到目标尺寸的 JPEG 在质量 95% 以上时避免再次压缩。
  */
 export async function fileToDataURL(
   file: File,
   opts: ImageOptions = DEFAULT_IMAGE_OPTIONS,
 ): Promise<string> {
-  if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+  if (opts.preserveOriginal || file.type === 'image/gif' || file.type === 'image/svg+xml') {
     return readAsDataURL(file);
   }
 
   const im = await loadImage(file);
+  if (im.naturalWidth <= opts.maxWidth && file.type === 'image/jpeg' && opts.quality >= 0.95) {
+    URL.revokeObjectURL(im.src);
+    return readAsDataURL(file);
+  }
   const scale = Math.min(1, opts.maxWidth / im.naturalWidth);
   const w = Math.max(1, Math.round(im.naturalWidth * scale));
   const h = Math.max(1, Math.round(im.naturalHeight * scale));
@@ -96,9 +112,9 @@ export async function fileToDataURL(
   ctx.drawImage(im, 0, 0, w, h);
   URL.revokeObjectURL(im.src);
 
-  const hasAlpha = file.type === 'image/png' && canvasHasAlpha(ctx, w, h);
+  const keepPNG = file.type === 'image/png' && (opts.quality >= 0.9 || canvasHasAlpha(ctx, w, h));
 
-  return hasAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', opts.quality);
+  return keepPNG ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', opts.quality);
 }
 
 export interface CropRect {
@@ -150,7 +166,7 @@ export async function recompressDataURL(
   source: string,
   opts: ImageOptions = DEFAULT_IMAGE_OPTIONS,
 ): Promise<string> {
-  if (!source.startsWith('data:image/') || /^data:image\/(?:gif|svg\+xml)/i.test(source)) {
+  if (opts.preserveOriginal || !source.startsWith('data:image/') || /^data:image\/(?:gif|svg\+xml)/i.test(source)) {
     return source;
   }
   const image = await loadImageSource(source);

@@ -2,7 +2,7 @@
 
 图文排版台公共核心按照 [Apache License 2.0](LICENSE) 发布。该许可不会替代或限制以下第三方组件各自的许可证。
 
-## DOMPurify 3.4.13
+## DOMPurify 3.4.16
 
 - 项目：https://github.com/cure53/DOMPurify
 - 作者：Dr.-Ing. Mario Heiderich, Cure53
