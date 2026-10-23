@@ -22,7 +22,7 @@
     "@types/jsdom": "^27.0.0",
     "jsdom": "^27.0.0",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5"
+    "vite": "^8.1.6"
   },
   "dependencies": {
     "dompurify": "^3.4.16",
